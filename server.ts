@@ -1,9 +1,13 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
-import path from "path";
+import path, { dirname } from "path";
+import { fileURLToPath } from 'url';
 import cookieParser from "cookie-parser";
-import Database from "better-sqlite3";
 import dotenv from "dotenv";
+import Database from "better-sqlite3";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
 
@@ -11,39 +15,24 @@ const app = express();
 app.set("trust proxy", 1);
 const PORT = 3000;
 
-// Database setup
-const db = new Database("tahqiq.db");
+// Initialize SQLite Database
+const db = new Database('data.db');
+
+// Create tables if they don't exist
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-    email TEXT UNIQUE,
+    email TEXT NOT NULL,
     name TEXT,
     picture TEXT,
     last_login DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  CREATE TABLE IF NOT EXISTS analytics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id TEXT,
-    event_type TEXT, -- view_article, login, logout
-    content_id TEXT,
-    details TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id TEXT,
-    message TEXT,
-    is_read BOOLEAN DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
   CREATE TABLE IF NOT EXISTS content (
     id TEXT PRIMARY KEY,
-    type TEXT, -- article, video, glossary
-    category TEXT, -- uzbekistan, global, speech, opinion, historical
+    type TEXT,
+    category TEXT,
     title_uz TEXT,
     title_ru TEXT,
     title_en TEXT,
@@ -57,16 +46,29 @@ db.exec(`
     video_url TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS analytics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT,
+    event_type TEXT,
+    content_id TEXT,
+    details TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT,
+    message TEXT,
+    is_read BOOLEAN DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // Mock data insertion if empty
-const contentCount = db.prepare("SELECT COUNT(*) as count FROM content").get() as { count: number };
+const contentCount = db.prepare('SELECT COUNT(*) as count FROM content').get() as { count: number };
 if (contentCount.count === 0) {
-  const insertContent = db.prepare(`
-    INSERT INTO content (id, type, category, title_uz, title_ru, title_en, excerpt_uz, excerpt_ru, excerpt_en, body_uz, body_ru, body_en, author, video_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
+  console.log("Initializing mock data in SQLite...");
   const mockData = [
     {
       id: "art-1", type: "article", category: "speech",
@@ -132,242 +134,26 @@ if (contentCount.count === 0) {
       body_ru: "Искусственный интеллект меняет политические кампании. Анализируя данные, можно более точно предсказать предпочтения избирателей. Однако эта технология также несет в себе риск распространения дезинформации. Вопрос политической этики становится более актуальным, чем когда-либо, в эпоху цифровых технологий.",
       body_en: "Artificial intelligence is changing political campaigns. By analyzing data, it is possible to predict voter preferences more accurately. However, this technology also poses a risk of spreading disinformation. The issue of political ethics is becoming more relevant than ever in the digital age.",
       author: "Tech & Policy Expert", video_url: null
-    },
-    {
-      id: "art-6", type: "article", category: "global",
-      title_uz: "Iqlim o'zgarishi va xavfsizlik: Markaziy Osiyo xavf ostidami?",
-      title_ru: "Изменение климата и безопасность: находится ли Центральная Азия под угрозой?",
-      title_en: "Climate Change and Security: Is Central Asia at Risk?",
-      excerpt_uz: "Ekologik muammolarning mintaqaviy barqarorlikka ta'siri.",
-      excerpt_ru: "Влияние экологических проблем на региональную стабильность.",
-      excerpt_en: "The impact of environmental problems on regional stability.",
-      body_uz: "Muzliklarning erishi va suv tanqisligi Markaziy Osiyo uchun eng katta xavflardan biridir. Bu muammo nafaqat ekologik, balki siyosiy xarakterga ham ega. Suv resurslari bo'yicha mintaqaviy hamkorlik xavfsizlikni ta'minlashning yagona yo'lidir. Tahqiq tahlillari shuni ko'rsatadiki, iqlim diplomatiyasi mintaqa davlatlari uchun ustuvor yo'nalishga aylanishi kerak.",
-      body_ru: "Таяние ледников и нехватка воды — одна из величайших угроз для Центральной Азии. Эта проблема носит не только экологический, но и политический характер. Региональное сотрудничество по водным ресурсам – единственный способ обеспечить безопасность. Анализ Tahqiq показывает, что климатическая дипломатия должна стать приоритетом для стран региона.",
-      body_en: "Glacier melting and water scarcity are one of the greatest threats to Central Asia. This problem is not only environmental, but also political in nature. Regional cooperation on water resources is the only way to ensure security. Tahqiq's analysis shows that climate diplomacy should become a priority for the countries of the region.",
-      author: "Eco-Policy Analyst", video_url: null
-    },
-    {
-      id: "art-7", type: "article", category: "uzbekistan",
-      title_uz: "O'zbekistonda fuqarolik jamiyati: Rivojlanish bosqichlari",
-      title_ru: "Гражданское общество в Узбекистане: Этапы развития",
-      title_en: "Civil Society in Uzbekistan: Stages of Development",
-      excerpt_uz: "Nodavlat tashkilotlar va jamoatchilik nazoratining kuchayishi.",
-      excerpt_ru: "Рост неправительственных организаций и общественного контроля.",
-      excerpt_en: "The growth of non-governmental organizations and public control.",
-      body_uz: "So'nggi yillarda O'zbekistonda fuqarolik jamiyati institutlarining roli sezilarli darajada oshdi. Jamoatchilik nazorati mexanizmlari davlat organlari faoliyatining shaffofligini ta'minlashga xizmat qilmoqda. Biroq, haqiqiy fuqarolik jamiyatini shakllantirish uchun huquqiy savodxonlikni oshirish va ijtimoiy tashabbuslarni qo'llab-quvvatlash zarur.",
-      body_ru: "В последние годы роль институтов гражданского общества в Узбекистане значительно возросла. Механизмы общественного контроля служат обеспечению прозрачности деятельности государственных органов. Однако для формирования истинного гражданского общества необходимо повышение правовой грамотности и поддержка социальных инициатив.",
-      body_en: "In recent years, the role of civil society institutions in Uzbekistan has significantly increased. Public control mechanisms serve to ensure the transparency of state bodies' activities. However, to form a true civil society, it is necessary to increase legal literacy and support social initiatives.",
-      author: "Sociology Expert", video_url: null
-    },
-    {
-      id: "art-8", type: "article", category: "speech",
-      title_uz: "BMT minbaridagi o'zbek tili: Tarixiy burilish",
-      title_ru: "Узбекский язык на трибуне ООН: исторический поворот",
-      title_en: "Uzbek Language at the UN Podium: A Historical Turning Point",
-      excerpt_uz: "Prezident nutqining madaniy va siyosiy ahamiyati.",
-      excerpt_ru: "Культурное и политическое значение речи президента.",
-      excerpt_en: "The cultural and political significance of the president's speech.",
-      body_uz: "O'zbekiston Prezidentining BMT Bosh Assambleyasida o'zbek tilida nutq so'zlashi milliy o'zlikni anglash va xalqaro maydonda davlat nufuzini mustahkamlash yo'lidagi muhim qadam bo'ldi. Bu voqea nafaqat lingvistik, balki chuqur siyosiy ma'noga ega bo'lib, O'zbekistonning mustaqil va teng huquqli sub'ekt ekanligini yana bir bor tasdiqladi.",
-      body_ru: "Выступление Президента Узбекистана на Генеральной Ассамблее ООН на узбекском языке стало важным шагом на пути национального самосознания и укрепления престижа государства на международной арене. Это событие имело не только лингвистическое, но и глубокое политическое значение, еще раз подтвердив, что Узбекистан является независимым и равноправным субъектом.",
-      body_en: "The President of Uzbekistan's speech at the UN General Assembly in the Uzbek language was an important step towards national identity and strengthening the state's prestige in the international arena. This event had not only linguistic, but also deep political significance, once again confirming that Uzbekistan is an independent and equal subject.",
-      author: "Cultural Analyst", video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-    },
-    {
-      id: "art-9", type: "article", category: "uzbekistan",
-      title_uz: "O'zbekistonning raqamli kelajagi: IT-parklar va innovatsiyalar",
-      title_ru: "Цифровое будущее Узбекистана: IT-парки и инновации",
-      title_en: "Uzbekistan's Digital Future: IT Parks and Innovations",
-      excerpt_uz: "Mamlakatda axborot texnologiyalari sohasini rivojlantirish bo'yicha ko'rilayotgan choralar.",
-      excerpt_ru: "Меры, принимаемые по развитию сферы информационных технологий в стране.",
-      excerpt_en: "Measures being taken to develop the information technology sector in the country.",
-      body_uz: "O'zbekiston IT-xabga aylanishni maqsad qilgan. IT-parklarning tashkil etilishi va soliq imtiyozlari yosh dasturchilar uchun keng imkoniyatlar yaratmoqda. Eksport hajmining oshishi sohaning salohiyatini ko'rsatadi.",
-      body_ru: "Узбекистан стремится стать IT-хабом. Создание IT-парков и налоговые льготы создают широкие возможности для молодых программистов. Рост объемов экспорта свидетельствует о потенциале отрасли.",
-      body_en: "Uzbekistan aims to become an IT hub. The creation of IT parks and tax incentives create wide opportunities for young programmers. The increase in export volumes shows the potential of the industry.",
-      author: "Tech Analyst", video_url: null
-    },
-    {
-      id: "art-10", type: "article", category: "global",
-      title_uz: "Global energetika inqirozi: Muqobil energiya manbalari",
-      title_ru: "Глобальный энергетический кризис: альтернативные источники энергии",
-      title_en: "Global Energy Crisis: Alternative Energy Sources",
-      excerpt_uz: "Dunyo bo'ylab energiya xavfsizligini ta'minlashda yashil texnologiyalarning o'rni.",
-      excerpt_ru: "Роль зеленых технологий в обеспечении энергетической безопасности во всем мире.",
-      excerpt_en: "The role of green technologies in ensuring energy security worldwide.",
-      body_uz: "Qayta tiklanadigan energiya manbalariga o'tish endi tanlov emas, balki zaruriyatdir. Quyosh va shamol energiyasi global energetika balansida muhim o'rin egallamoqda.",
-      body_ru: "Переход на возобновляемые источники энергии теперь не выбор, а необходимость. Солнечная и ветровая энергия занимают важное место в мировом энергетическом балансе.",
-      body_en: "The transition to renewable energy sources is no longer a choice, but a necessity. Solar and wind energy occupy an important place in the global energy balance.",
-      author: "Energy Expert", video_url: null
-    },
-    {
-      id: "art-11", type: "article", category: "speech",
-      title_uz: "Diplomatik muloqot san'ati: Muzokaralar strategiyasi",
-      title_ru: "Искусство дипломатического общения: стратегия переговоров",
-      title_en: "The Art of Diplomatic Communication: Negotiation Strategy",
-      excerpt_uz: "Xalqaro munosabatlarda samarali muloqot va murosaga erishish yo'llari.",
-      excerpt_ru: "Эффективное общение и пути достижения компромисса в международных отношениях.",
-      excerpt_en: "Effective communication and ways to reach compromise in international relations.",
-      body_uz: "Diplomatiya nafaqat davlatlararo aloqa, balki murakkab psixologik jarayondir. Muzokaralar stolida erishilgan kelishuvlar ko'pincha parda ortidagi nozik muloqotlar natijasidir.",
-      body_ru: "Дипломатия – это не только межгосударственное общение, но и сложный психологический процесс. Соглашения, достигнутые за столом переговоров, часто являются результатом деликатного общения за кулисами.",
-      body_en: "Diplomacy is not only interstate communication, but also a complex psychological process. Agreements reached at the negotiating table are often the result of delicate communication behind the scenes.",
-      author: "Senior Diplomat", video_url: null
-    },
-    {
-      id: "art-12", type: "article", category: "opinion",
-      title_uz: "Ta'lim islohoti: Sifatmi yoki miqdor?",
-      title_ru: "Реформа образования: качество или количество?",
-      title_en: "Education Reform: Quality or Quantity?",
-      excerpt_uz: "Oliy ta'lim tizimidagi o'zgarishlar va ularning mehnat bozoriga ta'siri.",
-      excerpt_ru: "Изменения в системе высшего образования и их влияние на рынок труда.",
-      excerpt_en: "Changes in the higher education system and their impact on the labor market.",
-      body_uz: "Oliy o'quv yurtlari sonining ko'payishi ta'lim sifatiga qanday ta'sir qilmoqda? Mehnat bozori talablariga javob beradigan kadrlar tayyorlash masalasi dolzarbligicha qolmoqda.",
-      body_ru: "Как увеличение количества высших учебных заведений влияет на качество образования? Вопрос подготовки кадров, отвечающих требованиям рынка труда, остается актуальным.",
-      body_en: "How does the increase in the number of higher education institutions affect the quality of education? The issue of training personnel who meet the requirements of the labor market remains relevant.",
-      author: "Education Specialist", video_url: null
-    },
-    {
-      id: "art-13", type: "article", category: "historical",
-      title_uz: "Ipak yo'li merosi: Madaniy aloqalar tiklanishi",
-      title_ru: "Наследие Шелкового пути: восстановление культурных связей",
-      title_en: "Silk Road Heritage: Restoration of Cultural Ties",
-      excerpt_uz: "Qadimiy savdo yo'lining zamonaviy dunyodagi ahamiyati va turizm salohiyati.",
-      excerpt_ru: "Значение древнего торгового пути в современном мире и туристический потенциал.",
-      excerpt_en: "The significance of the ancient trade route in the modern world and tourism potential.",
-      body_uz: "Buyuk Ipak yo'li nafaqat savdo, balki g'oyalar almashinuvi markazi bo'lgan. Bugungi kunda ushbu merosni tiklash mintaqaviy hamkorlikni mustahkamlashga xizmat qilmoqda.",
-      body_ru: "Великий Шелковый путь был центром не только торговли, но и обмена идеями. Сегодня восстановление этого наследия служит укреплению регионального сотрудничества.",
-      body_en: "The Great Silk Road was a center of not only trade, but also exchange of ideas. Today, the restoration of this heritage serves to strengthen regional cooperation.",
-      author: "Historian", video_url: null
-    },
-    {
-      id: "art-14", type: "article", category: "uzbekistan",
-      title_uz: "Qishloq xo'jaligida innovatsiyalar: Suv tejovchi texnologiyalar",
-      title_ru: "Инновации в сельском хозяйстве: водосберегающие технологии",
-      title_en: "Innovations in Agriculture: Water-Saving Technologies",
-      excerpt_uz: "O'zbekiston agrar sektorida tomchilatib sug'orish va raqamli monitoring.",
-      excerpt_ru: "Капельное орошение и цифровой мониторинг в аграрном секторе Узбекистана.",
-      excerpt_en: "Drip irrigation and digital monitoring in the agricultural sector of Uzbekistan.",
-      body_uz: "Suv tanqisligi sharoitida qishloq xo'jaligini modernizatsiya qilish hayotiy zaruriyatdir. Yangi texnologiyalar hosildorlikni oshirish bilan birga resurslarni tejash imkonini beradi.",
-      body_ru: "Модернизация сельского хозяйства в условиях дефицита воды является жизненной необходимостью. Новые технологии позволяют повысить урожайность и при этом сэкономить ресурсы.",
-      body_en: "Modernization of agriculture in conditions of water shortage is a vital necessity. New technologies allow to increase productivity while saving resources.",
-      author: "Agro Expert", video_url: null
-    },
-    {
-      id: "art-15", type: "article", category: "global",
-      title_uz: "Kosmik poyga 2.0: Xususiy sektorning roli",
-      title_ru: "Космическая гонка 2.0: роль частного сектора",
-      title_en: "Space Race 2.0: The Role of the Private Sector",
-      excerpt_uz: "SpaceX va boshqa kompaniyalarning koinotni o'zlashtirishdagi ta'siri.",
-      excerpt_ru: "Влияние SpaceX и других компаний на освоение космоса.",
-      excerpt_en: "The impact of SpaceX and other companies on space exploration.",
-      body_uz: "Koinot endi faqat davlatlar monopoliyasi emas. Xususiy kompaniyalar parvozlar tannarxini pasaytirib, yangi ufqlarni ochmoqda.",
-      body_ru: "Космос больше не является монополией государств. Частные компании снижают стоимость полетов и открывают новые горизонты.",
-      body_en: "Space is no longer just a state monopoly. Private companies are lowering the cost of flights and opening new horizons.",
-      author: "Space Analyst", video_url: null
-    },
-    {
-      id: "art-16", type: "article", category: "speech",
-      title_uz: "Siyosiy etika va mas'uliyat: Rahbar obrazi",
-      title_ru: "Политическая этика и ответственность: образ лидера",
-      title_en: "Political Ethics and Responsibility: The Image of a Leader",
-      excerpt_uz: "Zamonaviy siyosatda axloqiy me'yorlar va jamoatchilik ishonchi.",
-      excerpt_ru: "Этические нормы и общественное доверие в современной политике.",
-      excerpt_en: "Ethical standards and public trust in modern politics.",
-      body_uz: "Siyosatchining so'zi va amali o'rtasidagi mutanosiblik uning obro'sini belgilaydi. Axloqiy tamoyillar siyosiy barqarorlikning asosi hisoblanadi.",
-      body_ru: "Баланс между словами и действиями политика определяет его репутацию. Этические принципы являются основой политической стабильности.",
-      body_en: "The balance between a politician's words and actions determines his reputation. Ethical principles are the basis of political stability.",
-      author: "Ethics Researcher", video_url: null
-    },
-    {
-      id: "art-17", type: "article", category: "opinion",
-      title_uz: "Raqamli iqtisodiyot: Kriptovalyutalar va kelajak",
-      title_ru: "Цифровая экономика: криптовалюты и будущее",
-      title_en: "Digital Economy: Cryptocurrencies and the Future",
-      excerpt_uz: "Blokcheyn texnologiyasining moliya tizimiga ta'siri haqida tahlil.",
-      excerpt_ru: "Анализ влияния технологии блокчейн на финансовую систему.",
-      excerpt_en: "Analysis of the impact of blockchain technology on the financial system.",
-      body_uz: "Markaziy banklar raqamli valyutalarni joriy etish masalasini ko'rib chiqmoqda. Bu an'anaviy moliya tizimini tubdan o'zgartirishi mumkin.",
-      body_ru: "Центральные банки рассматривают вопрос введения цифровых валют. Это может радикально изменить традиционную финансовую систему.",
-      body_en: "Central banks are considering the issue of introducing digital currencies. This could radically change the traditional financial system.",
-      author: "Financial Analyst", video_url: null
-    },
-    {
-      id: "art-18", type: "article", category: "historical",
-      title_uz: "Jadidlar harakati: Milliy uyg'onish saboqlari",
-      title_ru: "Движение джадидов: уроки национального возрождения",
-      title_en: "Jadid Movement: Lessons of National Revival",
-      excerpt_uz: "XX asr boshidagi ma'rifatparvarlarning g'oyalari va ularning bugungi kundagi ahamiyati.",
-      excerpt_ru: "Идеи просветителей начала XX века и их значение сегодня.",
-      excerpt_en: "The ideas of the enlighteners of the early 20th century and their significance today.",
-      body_uz: "Jadidlar ta'lim va ma'rifat orqali millatni ozodlikka yetaklashni maqsad qilgan edilar. Ularning g'oyalari bugungi kunda ham o'z dolzarbligini yo'qotmagan.",
-      body_ru: "Джадиды стремились привести нацию к свободе через образование и просвещение. Их идеи не потеряли своей актуальности и сегодня.",
-      body_en: "The Jadids aimed to lead the nation to freedom through education and enlightenment. Their ideas have not lost their relevance today.",
-      author: "Historian", video_url: null
-    },
-    {
-      id: "art-19", type: "article", category: "uzbekistan",
-      title_uz: "O'zbekistonning turizm salohiyati: Yangi yo'nalishlar",
-      title_ru: "Туристический потенциал Узбекистана: новые направления",
-      title_en: "Uzbekistan's Tourism Potential: New Directions",
-      excerpt_uz: "Ziyorat turizmi va ekoturizmni rivojlantirish bo'yicha strategik rejalar.",
-      excerpt_ru: "Стратегические планы по развитию паломнического и экотуризма.",
-      excerpt_en: "Strategic plans for the development of pilgrimage and ecotourism.",
-      body_uz: "O'zbekiston turizm sohasini iqtisodiyotning drayveriga aylantirmoqda. Viza rejimining soddalashtirilishi va infratuzilmaning yaxshilanishi sayyohlar oqimini oshirmoqda.",
-      body_ru: "Узбекистан превращает сферу туризма в драйвер экономики. Упрощение визового режима и улучшение инфраструктуры увеличивают поток туристов.",
-      body_en: "Uzbekistan is turning the tourism sector into a driver of the economy. The simplification of the visa regime and the improvement of infrastructure are increasing the flow of tourists.",
-      author: "Tourism Expert", video_url: null
-    },
-    {
-      id: "art-20", type: "article", category: "global",
-      title_uz: "Dunyo okeani va ekologiya: Moviy iqtisodiyot",
-      title_ru: "Мировой океан и экология: Голубая экономика",
-      title_en: "World Ocean and Ecology: Blue Economy",
-      excerpt_uz: "Okean resurslaridan barqaror foydalanish va dengiz ekotizimlarini himoya qilish.",
-      excerpt_ru: "Устойчивое использование ресурсов океана и защита морских экосистем.",
-      excerpt_en: "Sustainable use of ocean resources and protection of marine ecosystems.",
-      body_uz: "Moviy iqtisodiyot global barqarorlikning kalitidir. Okeanlarni plastik ifloslanishdan tozalash va baliq zaxiralarini saqlash insoniyat kelajagi uchun muhimdir.",
-      body_ru: "Голубая экономика – ключ к глобальной стабильности. Очистка океанов от пластикового загрязнения и сохранение рыбных запасов важны для будущего человечества.",
-      body_en: "The blue economy is the key to global stability. Cleaning the oceans of plastic pollution and preserving fish stocks are important for the future of humanity.",
-      author: "Marine Biologist", video_url: null
-    },
-    {
-      id: "art-21", type: "article", category: "speech",
-      title_uz: "Nutq madaniyati va jamiyat: Muloqot odobi",
-      title_ru: "Культура речи и общество: этикет общения",
-      title_en: "Speech Culture and Society: Communication Etiquette",
-      excerpt_uz: "Ommaviy chiqishlarda tilning o'rni va notiqlik san'ati sirlari.",
-      excerpt_ru: "Роль языка в публичных выступлениях и секреты ораторского искусства.",
-      excerpt_en: "The role of language in public speaking and the secrets of the art of oratory.",
-      body_uz: "Notiqlik san'ati nafaqat chiroyli gapirish, balki tinglovchi qalbini zabt etishdir. Zamonaviy rahbar uchun nutq madaniyati eng muhim ko'nikmalardan biridir.",
-      body_ru: "Искусство ораторского мастерства – это не только умение красиво говорить, но и умение покорить сердце слушателя. Для современного лидера культура речи – один из важнейших навыков.",
-      body_en: "The art of oratory is not only about speaking beautifully, but also about winning the heart of the listener. For a modern leader, speech culture is one of the most important skills.",
-      author: "Linguist", video_url: null
     }
   ];
 
-  for (const item of mockData) {
-    insertContent.run(
-      item.id, item.type, item.category,
-      item.title_uz, item.title_ru, item.title_en,
-      item.excerpt_uz, item.excerpt_ru, item.excerpt_en,
-      item.body_uz, item.body_ru, item.body_en,
-      item.author, item.video_url
-    );
-  }
-}
+  const insertContent = db.prepare(`
+    INSERT INTO content (id, type, category, title_uz, title_ru, title_en, excerpt_uz, excerpt_ru, excerpt_en, body_uz, body_ru, body_en, author, video_url)
+    VALUES (@id, @type, @category, @title_uz, @title_ru, @title_en, @excerpt_uz, @excerpt_ru, @excerpt_en, @body_uz, @body_ru, @body_en, @author, @video_url)
+  `);
 
-// Mock Email Notification
-function notifyUsers(contentTitle: string) {
-  const users = db.prepare("SELECT email FROM users").all() as { email: string }[];
-  console.log(`[MOCK EMAIL] Notifying ${users.length} users about new content: ${contentTitle}`);
-  users.forEach(u => {
-    console.log(`[MOCK EMAIL] Sent to ${u.email}`);
+  const insertMany = db.transaction((data) => {
+    for (const item of data) insertContent.run(item);
   });
+
+  insertMany(mockData);
+  console.log("Mock data initialized.");
 }
 
 app.use(express.json());
 app.use(cookieParser());
 
 // Auth Routes
-
 app.post("/api/auth/firebase-sync", (req, res) => {
   const { uid, email, name, picture } = req.body;
   
@@ -376,25 +162,31 @@ app.post("/api/auth/firebase-sync", (req, res) => {
   }
 
   try {
-    db.prepare(`
-      INSERT INTO users (id, email, name, picture, last_login)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(id) DO UPDATE SET name=excluded.name, picture=excluded.picture, last_login=CURRENT_TIMESTAMP
-    `).run(uid, email, name || "User", picture || "");
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(uid);
+    
+    if (!user) {
+      db.prepare(`
+        INSERT INTO users (id, email, name, picture, last_login)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `).run(uid, email, name || "User", picture || "");
+    } else {
+      db.prepare(`
+        UPDATE users SET name = ?, picture = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?
+      `).run(name || "User", picture || "", uid);
+    }
 
-    // Log login activity
-    db.prepare("INSERT INTO analytics (user_id, event_type, details) VALUES (?, 'login', 'Firebase User Login')").run(uid);
+    db.prepare(`
+      INSERT INTO analytics (user_id, event_type, details)
+      VALUES (?, 'login', 'User Login')
+    `).run(uid);
 
     res.cookie("user_id", uid, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     res.json({ success: true, user: { id: uid, email, name, picture } });
   } catch (error) {
-    console.error("Firebase sync error:", error);
+    console.error("Sync error:", error);
     res.status(500).json({ error: "Failed to sync user" });
   }
 });
@@ -403,104 +195,113 @@ app.get("/api/auth/me", (req, res) => {
   const userId = req.cookies.user_id;
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
-  if (!user) return res.status(401).json({ error: "User not found" });
-
-  res.json(user);
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    if (!user) return res.status(401).json({ error: "User not found" });
+    
+    res.json(user);
+  } catch (e) {
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 app.post("/api/auth/logout", (req, res) => {
   const userId = req.cookies.user_id;
   if (userId) {
     try {
-      db.prepare("INSERT INTO analytics (user_id, event_type, details) VALUES (?, 'logout', 'Firebase User Logout')").run(userId);
-    } catch (e) {
-      console.error("Failed to log logout event:", e);
-    }
+      db.prepare(`
+        INSERT INTO analytics (user_id, event_type, details)
+        VALUES (?, 'logout', 'User Logout')
+      `).run(userId);
+    } catch (e) {}
   }
-  res.clearCookie("user_id", {
-    secure: true,
-    sameSite: "none",
-  });
+  res.clearCookie("user_id", { secure: true, sameSite: "none" });
   res.json({ success: true });
 });
 
 // Content Routes
 app.get("/api/content", (req, res) => {
   const { type, category } = req.query;
-  let query = "SELECT id, type, category, title_uz, title_ru, title_en, excerpt_uz, excerpt_ru, excerpt_en, author, created_at FROM content";
-  const params = [];
-
-  if (type || category) {
-    query += " WHERE";
+  try {
+    let query = 'SELECT id, type, category, title_uz, title_ru, title_en, excerpt_uz, excerpt_ru, excerpt_en, author, video_url, created_at FROM content WHERE 1=1';
+    const params: any[] = [];
+    
     if (type) {
-      query += " type = ?";
+      query += ' AND type = ?';
       params.push(type);
     }
     if (category) {
-      if (type) query += " AND";
-      query += " category = ?";
+      query += ' AND category = ?';
       params.push(category);
     }
+    
+    const items = db.prepare(query).all(...params);
+    res.json(items);
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch content" });
   }
-
-  const items = db.prepare(query).all(...params);
-  res.json(items);
 });
 
 app.get("/api/content/:id", (req, res) => {
   const userId = req.cookies.user_id;
-  const item = db.prepare("SELECT * FROM content WHERE id = ?").get(req.params.id) as any;
+  try {
+    const item = db.prepare('SELECT * FROM content WHERE id = ?').get(req.params.id) as any;
+    if (!item) return res.status(404).json({ error: "Not found" });
 
-  if (!item) return res.status(404).json({ error: "Not found" });
+    if (!userId) {
+      return res.json({ 
+        ...item, 
+        body_uz: null, body_ru: null, body_en: null, 
+        is_preview: true
+      });
+    }
 
-  // Access control: full content only for logged in users
-  if (!userId) {
-    // Return only preview
-    return res.json({
-      ...item,
-      body_uz: null,
-      body_ru: null,
-      body_en: null,
-      is_preview: true
+    db.prepare(`
+      INSERT INTO analytics (user_id, event_type, content_id)
+      VALUES (?, 'view', ?)
+    `).run(userId, item.id);
+
+    res.json({ 
+      ...item, 
+      is_preview: false
     });
+  } catch (e) {
+    res.status(500).json({ error: "Server error" });
   }
-
-  // Track analytics
-  db.prepare("INSERT INTO analytics (user_id, event_type, content_id) VALUES (?, ?, ?)")
-    .run(userId, "view", item.id);
-
-  res.json({ ...item, is_preview: false });
 });
 
 // Analytics Route
 app.get("/api/admin/analytics", (req, res) => {
-  // In a real app, this would be protected by admin role
-  const stats = {
-    total_users: (db.prepare("SELECT COUNT(*) as count FROM users").get() as any).count,
-    total_views: (db.prepare("SELECT COUNT(*) as count FROM analytics").get() as any).count,
-    popular_content: db.prepare(`
+  try {
+    const totalUsers = (db.prepare('SELECT COUNT(*) as count FROM users').get() as any).count;
+    const totalViews = (db.prepare('SELECT COUNT(*) as count FROM analytics').get() as any).count;
+    
+    const popularContent = db.prepare(`
       SELECT c.title_en, COUNT(a.id) as views
       FROM analytics a
       JOIN content c ON a.content_id = c.id
+      WHERE a.content_id IS NOT NULL
       GROUP BY a.content_id
       ORDER BY views DESC
       LIMIT 5
-    `).all()
-  };
-  res.json(stats);
+    `).all();
+      
+    res.json({
+      total_users: totalUsers,
+      total_views: totalViews,
+      popular_content: popularContent
+    });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to fetch analytics" });
+  }
 });
 
 // Admin Routes
 app.post("/api/admin/login", (req, res) => {
   const { code } = req.body;
-  // Hardcoded check for server-side security as requested
   if (code === "1980") {
     res.cookie("admin_token", "admin-secret-token", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      httpOnly: true, secure: true, sameSite: "none", maxAge: 24 * 60 * 60 * 1000
     });
     res.json({ success: true });
   } else {
@@ -518,7 +319,7 @@ const requireAdmin = (req: express.Request, res: express.Response, next: express
 
 app.get("/api/admin/users", requireAdmin, (req, res) => {
   try {
-    const users = db.prepare("SELECT * FROM users ORDER BY last_login DESC").all();
+    const users = db.prepare('SELECT * FROM users ORDER BY last_login DESC').all();
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch users" });
@@ -545,7 +346,10 @@ app.post("/api/admin/message", requireAdmin, (req, res) => {
   if (!userId || !message) return res.status(400).json({ error: "Missing fields" });
   
   try {
-    db.prepare("INSERT INTO messages (user_id, message) VALUES (?, ?)").run(userId, message);
+    db.prepare(`
+      INSERT INTO messages (user_id, message)
+      VALUES (?, ?)
+    `).run(userId, message);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Failed to send message" });
@@ -553,17 +357,18 @@ app.post("/api/admin/message", requireAdmin, (req, res) => {
 });
 
 app.post("/api/admin/logout", (req, res) => {
-  res.clearCookie("admin_token", {
-    secure: true,
-    sameSite: "none",
-  });
+  res.clearCookie("admin_token", { secure: true, sameSite: "none" });
   res.json({ success: true });
 });
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true, 
+        hmr: false,
+        watch: null
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

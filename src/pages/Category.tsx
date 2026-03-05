@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ContentItem } from '../types';
+import { PageWrapper } from '../components/PageWrapper';
 
 export const Category: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,10 +13,19 @@ export const Category: React.FC = () => {
   useEffect(() => {
     const fetchItems = async () => {
       setLoading(true);
-      const res = await fetch(`/api/content?category=${id}`, { credentials: 'include' });
-      const data = await res.json();
-      setItems(data);
-      setLoading(false);
+      try {
+        const res = await fetch(`/api/content?category=${id}`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setItems(data);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch category items:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchItems();
   }, [id]);
@@ -33,14 +43,14 @@ export const Category: React.FC = () => {
   };
 
   return (
-    <div className="news-container py-24 transition-colors duration-500">
+    <PageWrapper className="news-container py-24 transition-colors duration-500">
       <header className="mb-20 border-b border-navy/5 dark:border-gold/5 pb-12">
-        <span className="text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-4 block">Archive Explorer</span>
+        <span className="text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-4 block">{t('category.archive_explorer')}</span>
         <h1 className="text-5xl md:text-7xl font-serif font-bold text-navy dark:text-white capitalize mb-6">
           {id?.replace('_', ' ')}
         </h1>
         <p className="text-lg text-navy/50 dark:text-gray-400 max-w-2xl font-light leading-relaxed italic">
-          "Deep dives, expert analysis, and strategic insights regarding the {id?.replace('_', ' ')} landscape."
+          {t('category.desc', { category: id?.replace('_', ' ') })}
         </p>
       </header>
 
@@ -69,12 +79,14 @@ export const Category: React.FC = () => {
               <div className="mt-auto flex items-center text-[10px] font-bold text-navy/30 dark:text-gold/30 uppercase tracking-[0.2em]">
                 <span className="text-navy dark:text-gray-300">{item.author}</span>
                 <span className="mx-3 w-1 h-1 bg-gold rounded-full"></span>
-                <span className="text-navy dark:text-gray-300">{new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                <span className="text-navy dark:text-gray-300">
+                  {new Date(item.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'short', year: 'numeric' })}
+                </span>
               </div>
             </Link>
           ))}
         </div>
       )}
-    </div>
+    </PageWrapper>
   );
 };

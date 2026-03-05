@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import './i18n';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { SwipeNavigation } from './components/SwipeNavigation';
 import { Home } from './pages/Home';
 import { Article } from './pages/Article';
 import { Category } from './pages/Category';
@@ -13,26 +15,38 @@ import { Glossary } from './pages/Glossary';
 import { Admin } from './pages/Admin';
 import { User } from './types';
 
+export const SwipeContext = React.createContext<'left' | 'right' | null>(null);
+
+function AnimatedRoutes({ user, swipeDirection }: { user: User | null, swipeDirection: 'left' | 'right' | null }) {
+  const location = useLocation();
+
+  return (
+    <SwipeContext.Provider value={swipeDirection}>
+      <AnimatePresence mode="wait" custom={swipeDirection}>
+        {/* @ts-ignore */}
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Home user={user} />} />
+          <Route path="/article/:id" element={<Article user={user} />} />
+          <Route path="/category/:id" element={<Category />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/glossary" element={<Glossary />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </AnimatePresence>
+    </SwipeContext.Provider>
+  );
+}
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    // Default to dark mode if no preference is saved
-    return saved === 'dark' || !saved; 
-  });
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+    document.documentElement.classList.remove('dark');
+  }, []);
 
   const fetchUser = async () => {
     try {
@@ -69,13 +83,17 @@ export default function App() {
     } catch (e) {
       console.error('Firebase logout error:', e);
     }
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {
+      console.error('Server logout error:', e);
+    }
     setUser(null);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-dark-bg transition-colors duration-500">
+      <div className="min-h-screen flex items-center justify-center bg-white transition-colors duration-500">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
       </div>
     );
@@ -83,19 +101,11 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen flex flex-col bg-white dark:bg-dark-bg transition-colors duration-500">
-        <Header user={user} onLogout={handleLogout} isDarkMode={isDarkMode} onToggleTheme={toggleTheme} onLoginSuccess={fetchUser} />
+      <SwipeNavigation setSwipeDirection={setSwipeDirection} />
+      <div className="min-h-screen flex flex-col bg-white transition-colors duration-500">
+        <Header user={user} onLogout={handleLogout} onLoginSuccess={fetchUser} />
         <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/article/:id" element={<Article user={user} />} />
-            <Route path="/category/:id" element={<Category />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/glossary" element={<Glossary />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+          <AnimatedRoutes user={user} swipeDirection={swipeDirection} />
         </main>
         <Footer />
       </div>

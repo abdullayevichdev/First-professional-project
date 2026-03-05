@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
+import { PageWrapper } from '../components/PageWrapper';
 
 export const About: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="pb-32 transition-colors duration-500">
+    <PageWrapper className="transition-colors duration-500">
       <section className="bg-white dark:bg-dark-card py-32 border-b border-navy/5 dark:border-gold/5 transition-colors duration-500">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.span 
@@ -14,7 +15,7 @@ export const About: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-6 block"
           >
-            Our Philosophy
+            {t('about.philosophy')}
           </motion.span>
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
@@ -45,10 +46,10 @@ export const About: React.FC = () => {
             <h2 className="text-3xl font-serif font-bold text-navy dark:text-white mb-8">{t('common.mission')}</h2>
             <div className="text-navy/70 dark:text-gray-400 leading-[2] font-light text-lg space-y-6">
               <p>
-                Tahqiq is a professional platform dedicated to the evidence-based analysis of political speeches and global issues. Our mission is to educate both Uzbek and international audiences by balancing neutral curation with strong analytical commentary.
+                {t('about.mission_p1')}
               </p>
               <p>
-                We believe that in an era of information overload, the ability to decode the true meaning behind political rhetoric is essential for a healthy democracy and an informed citizenry.
+                {t('about.mission_p2')}
               </p>
             </div>
           </motion.div>
@@ -80,33 +81,15 @@ export const About: React.FC = () => {
             <h2 className="text-3xl font-serif font-bold text-navy dark:text-white mb-8">{t('common.why_matters')}</h2>
             <div className="text-navy/70 dark:text-gray-400 leading-[2] font-light text-lg space-y-6">
               <p>
-                Our project matters because it provides a bridge between history and the present. By analyzing the influences of history's pages, we offer prospects for the present time.
+                {t('about.why_p1')}
               </p>
               <p>
-                This platform is particularly valuable for students, researchers, and anyone interested in PPE (Politics, Philosophy, and Economics) applications, providing academic depth and reliable source citations.
+                {t('about.why_p2')}
               </p>
             </div>
           </motion.div>
         </div>
       </section>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="news-container mt-32 text-center"
-      >
-        <div className="bg-white dark:bg-dark-card p-20 article-card shadow-2xl border border-gold/10">
-          <h2 className="text-4xl font-serif font-bold text-navy dark:text-white mb-8">Join Our Community</h2>
-          <p className="text-navy/60 dark:text-gray-400 mb-12 max-w-xl mx-auto font-light leading-relaxed text-lg">
-            Stay informed with our latest analytical insights, decoding the complexities of global politics and historical perspectives.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <button className="btn-premium px-12">Subscribe to Newsletter</button>
-            <button className="btn-secondary px-12">Contact Editorial</button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+    </PageWrapper>
   );
 };

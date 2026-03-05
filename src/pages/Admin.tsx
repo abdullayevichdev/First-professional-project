@@ -4,6 +4,8 @@ import { motion } from 'motion/react';
 import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useTranslation } from 'react-i18next';
+import { PageWrapper } from '../components/PageWrapper';
 
 const parseDate = (dateString: string) => {
   if (!dateString) return new Date();
@@ -34,6 +36,7 @@ interface AdminActivity {
 
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -80,8 +83,14 @@ export const Admin: React.FC = () => {
         fetch('/api/admin/activity', { credentials: 'include' })
       ]);
       
-      if (usersRes.ok) setUsers(await usersRes.json());
-      if (activityRes.ok) setActivity(await activityRes.json());
+      if (usersRes.ok) {
+        const data = await usersRes.json();
+        if (Array.isArray(data)) setUsers(data);
+      }
+      if (activityRes.ok) {
+        const data = await activityRes.json();
+        if (Array.isArray(data)) setActivity(data);
+      }
     } catch (err) {
       console.error("Failed to fetch data", err);
     } finally {
@@ -104,10 +113,10 @@ export const Admin: React.FC = () => {
         setIsAuthenticated(true);
         fetchData();
       } else {
-        setError('Invalid Access Code');
+        setError(t('admin.invalid_code'));
       }
     } catch (err) {
-      setError('Login failed');
+      setError(t('admin.login_failed'));
     }
   };
 
@@ -132,14 +141,14 @@ export const Admin: React.FC = () => {
       });
       
       if (res.ok) {
-        alert('Message sent successfully');
+        alert(t('admin.msg_success'));
         setMessageText('');
         setSelectedUser(null);
       } else {
-        alert('Failed to send message');
+        alert(t('admin.msg_failed'));
       }
     } catch (err) {
-      alert('Error sending message');
+      alert(t('admin.msg_error'));
     }
   };
 
@@ -195,7 +204,7 @@ export const Admin: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center p-4">
+      <PageWrapper className="min-h-screen bg-navy flex items-center justify-center p-4">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -206,8 +215,8 @@ export const Admin: React.FC = () => {
               <Lock className="text-gold" size={32} />
             </div>
           </div>
-          <h2 className="text-2xl font-serif font-bold text-center text-navy mb-2">Admin Access</h2>
-          <p className="text-center text-gray-500 mb-8 text-sm">Enter the secure access code to continue</p>
+          <h2 className="text-2xl font-serif font-bold text-center text-navy mb-2">{t('admin.access')}</h2>
+          <p className="text-center text-gray-500 mb-8 text-sm">{t('admin.enter_code')}</p>
           
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
@@ -226,16 +235,16 @@ export const Admin: React.FC = () => {
               type="submit"
               className="w-full bg-navy text-white py-4 font-bold uppercase tracking-widest hover:bg-gold transition-colors duration-300"
             >
-              Unlock Panel
+              {t('admin.unlock')}
             </button>
           </form>
         </motion.div>
-      </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-dark-bg transition-colors duration-500">
+    <PageWrapper className="min-h-screen bg-paper dark:bg-dark-bg transition-colors duration-500">
       {/* Admin Header */}
       <header className="bg-navy text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -243,17 +252,17 @@ export const Admin: React.FC = () => {
             <div className="w-8 h-8 bg-gold rounded flex items-center justify-center">
               <span className="font-serif font-bold text-navy">T</span>
             </div>
-            <span className="font-bold tracking-widest uppercase text-sm">Admin Console</span>
+            <span className="font-bold tracking-widest uppercase text-sm">{t('admin.console')}</span>
           </div>
           <div className="flex items-center space-x-6">
             <button onClick={exportPDF} className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider hover:text-gold transition-colors">
               <Download size={16} />
-              <span>Export Report</span>
+              <span>{t('admin.export')}</span>
             </button>
             <div className="h-4 w-[1px] bg-white/20"></div>
             <button onClick={handleLogout} className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider hover:text-red-400 transition-colors">
               <LogOut size={16} />
-              <span>Exit</span>
+              <span>{t('admin.exit')}</span>
             </button>
           </div>
         </div>
@@ -265,7 +274,7 @@ export const Admin: React.FC = () => {
           <div className="bg-white dark:bg-dark-card p-6 rounded-sm shadow-sm border-l-4 border-gold">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total Users</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t('admin.total_users')}</p>
                 <h3 className="text-3xl font-serif font-bold text-navy dark:text-white mt-2">{users.length}</h3>
               </div>
               <Users className="text-gold/50" size={24} />
@@ -274,7 +283,7 @@ export const Admin: React.FC = () => {
           <div className="bg-white dark:bg-dark-card p-6 rounded-sm shadow-sm border-l-4 border-navy">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Active Today</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t('admin.active_today')}</p>
                 <h3 className="text-3xl font-serif font-bold text-navy dark:text-white mt-2">
                   {users.filter(u => u.last_login && parseDate(u.last_login).toDateString() === new Date().toDateString()).length}
                 </h3>
@@ -285,7 +294,7 @@ export const Admin: React.FC = () => {
           <div className="bg-white dark:bg-dark-card p-6 rounded-sm shadow-sm border-l-4 border-green-500">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total Actions</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t('admin.total_actions')}</p>
                 <h3 className="text-3xl font-serif font-bold text-navy dark:text-white mt-2">{activity.length}</h3>
               </div>
               <FileText className="text-green-500/50" size={24} />
@@ -303,7 +312,7 @@ export const Admin: React.FC = () => {
                 : 'text-gray-400 hover:text-navy dark:hover:text-gold'
             }`}
           >
-            User Management
+            {t('admin.user_mgmt')}
           </button>
           <button
             onClick={() => setActiveTab('activity')}
@@ -313,7 +322,7 @@ export const Admin: React.FC = () => {
                 : 'text-gray-400 hover:text-navy dark:hover:text-gold'
             }`}
           >
-            Activity Logs
+            {t('admin.activity_logs')}
           </button>
           <button
             onClick={() => setActiveTab('departed')}
@@ -323,7 +332,7 @@ export const Admin: React.FC = () => {
                 : 'text-gray-400 hover:text-navy dark:hover:text-gold'
             }`}
           >
-            Departed Users
+            {t('admin.departed_users')}
           </button>
         </div>
 
@@ -334,10 +343,10 @@ export const Admin: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-navy/5 dark:bg-gold/5">
                   <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">User</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Email</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Last Active</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Actions</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.user')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.email')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.last_active')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
@@ -358,7 +367,7 @@ export const Admin: React.FC = () => {
                           onClick={() => setSelectedUser(user)}
                           className="text-navy dark:text-gold hover:underline text-xs font-bold uppercase tracking-wider"
                         >
-                          Message
+                          {t('admin.message')}
                         </button>
                       </td>
                     </tr>
@@ -375,10 +384,10 @@ export const Admin: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-navy/5 dark:bg-gold/5">
                   <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Time</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">User</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Event</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Details</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.time')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.user')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.event')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.details')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
@@ -417,10 +426,10 @@ export const Admin: React.FC = () => {
               <table className="w-full">
                 <thead className="bg-navy/5 dark:bg-gold/5">
                   <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Time</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">User</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Email</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Event</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.time')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.user')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.email')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.event')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
@@ -445,7 +454,7 @@ export const Admin: React.FC = () => {
                   {activity.filter(log => log.event_type === 'logout').length === 0 && (
                     <tr>
                       <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">
-                        No departed users found.
+                        {t('admin.no_departed')}
                       </td>
                     </tr>
                   )}
@@ -465,38 +474,38 @@ export const Admin: React.FC = () => {
             className="bg-white dark:bg-dark-card w-full max-w-lg rounded-lg shadow-2xl overflow-hidden"
           >
             <div className="bg-navy p-4 flex justify-between items-center">
-              <h3 className="text-white font-bold uppercase tracking-widest text-sm">Message to {selectedUser.name}</h3>
+              <h3 className="text-white font-bold uppercase tracking-widest text-sm">{t('admin.message_to')} {selectedUser.name}</h3>
               <button onClick={() => setSelectedUser(null)} className="text-white/50 hover:text-white">
                 <LogOut size={18} className="rotate-180" /> {/* Using LogOut as close icon equivalent */}
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-500">Send a direct notification to this user.</p>
+              <p className="text-sm text-gray-500">{t('admin.send_notification')}</p>
               <textarea
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
                 className="w-full h-32 p-4 border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-dark-bg focus:outline-none focus:border-gold transition-colors resize-none"
-                placeholder="Type your message here..."
+                placeholder={t('admin.type_message')}
               ></textarea>
               <div className="flex justify-end space-x-4">
                 <button 
                   onClick={() => setSelectedUser(null)}
                   className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-navy"
                 >
-                  Cancel
+                  {t('admin.cancel')}
                 </button>
                 <button 
                   onClick={handleSendMessage}
                   className="bg-navy text-white px-6 py-2 rounded text-xs font-bold uppercase tracking-widest hover:bg-gold transition-colors flex items-center space-x-2"
                 >
                   <Send size={14} />
-                  <span>Send</span>
+                  <span>{t('admin.send')}</span>
                 </button>
               </div>
             </div>
           </motion.div>
         </div>
       )}
-    </div>
+    </PageWrapper>
   );
 };

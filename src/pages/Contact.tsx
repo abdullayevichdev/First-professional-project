@@ -1,33 +1,34 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mail, Phone, Instagram, Send, Youtube } from 'lucide-react';
+import { PageWrapper } from '../components/PageWrapper';
 
 export const Contact: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="news-container py-32 transition-colors duration-500">
+    <PageWrapper className="news-container py-32 transition-colors duration-500">
       <div className="max-w-6xl mx-auto">
         <header className="text-center mb-24">
-          <span className="text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-6 block">Get in Touch</span>
+          <span className="text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-6 block">{t('contact.get_in_touch')}</span>
           <h1 className="text-5xl md:text-7xl font-serif font-bold text-navy dark:text-white mb-8">{t('nav.contact')}</h1>
           <p className="text-lg text-navy/50 dark:text-gray-400 font-light leading-relaxed max-w-2xl mx-auto italic">
-            "For inquiries, academic collaborations, or media requests, please reach out to our editorial team."
+            {t('contact.desc')}
           </p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-24">
           <div className="space-y-12">
             <div className="sidebar-card">
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-navy/30 dark:text-gold/30 mb-8">Editorial Office</h2>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-navy/30 dark:text-gold/30 mb-8">{t('contact.editorial_office')}</h2>
               <p className="text-sm text-navy dark:text-gray-300 leading-relaxed font-medium">
-                Tashkent, Uzbekistan<br />
-                Political Analysis Department
+                {t('contact.address')}<br />
+                {t('contact.department')}
               </p>
             </div>
             
             <div className="sidebar-card">
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-navy/30 dark:text-gold/30 mb-8">Direct Contact</h2>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-navy/30 dark:text-gold/30 mb-8">{t('contact.direct_contact')}</h2>
               <div className="space-y-6">
                 <div className="flex items-center space-x-4">
                   <Mail size={18} className="text-gold" />
@@ -41,7 +42,7 @@ export const Contact: React.FC = () => {
             </div>
 
             <div className="pt-12 border-t border-navy/5 dark:border-gold/5">
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-navy/30 dark:text-gold/30 mb-8">Connect</h2>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-navy/30 dark:text-gold/30 mb-8">{t('footer.connect')}</h2>
               <div className="flex space-x-6">
                 {[
                   { icon: <Youtube size={24} />, url: 'https://youtube.com/@TAHQIQ_OFFICIAL' },
@@ -64,24 +65,24 @@ export const Contact: React.FC = () => {
 
           <form className="space-y-10 bg-white dark:bg-dark-card p-12 article-card border border-gold/10 shadow-xl">
             <div className="space-y-4">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-navy/40 dark:text-gold/40">Full Name</label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-navy/40 dark:text-gold/40">{t('contact.full_name')}</label>
               <input type="text" className="w-full bg-white dark:bg-dark-bg border border-navy/10 dark:border-gold/10 px-6 py-5 text-sm focus:outline-none focus:border-gold transition-colors dark:text-white" />
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-navy/40 dark:text-gold/40">Email Address</label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-navy/40 dark:text-gold/40">{t('contact.email')}</label>
               <input type="email" className="w-full bg-white dark:bg-dark-bg border border-navy/10 dark:border-gold/10 px-6 py-5 text-sm focus:outline-none focus:border-gold transition-colors dark:text-white" />
             </div>
             <div className="space-y-4">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-navy/40 dark:text-gold/40">Message</label>
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-navy/40 dark:text-gold/40">{t('contact.message')}</label>
               <textarea rows={6} className="w-full bg-white dark:bg-dark-bg border border-navy/10 dark:border-gold/10 px-6 py-5 text-sm focus:outline-none focus:border-gold transition-colors resize-none dark:text-white"></textarea>
             </div>
             <button type="submit" className="btn-premium w-full shadow-2xl">
               <Send size={18} />
-              <span>Send Inquiry</span>
+              <span>{t('contact.send_inquiry')}</span>
             </button>
           </form>
         </div>
       </div>
-    </div>
+    </PageWrapper>
   );
 };

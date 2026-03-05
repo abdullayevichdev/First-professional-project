@@ -10,12 +10,10 @@ import { signInWithGoogle, signInWithApple } from '../lib/firebase';
 interface HeaderProps {
   user: UserType | null;
   onLogout: () => void;
-  isDarkMode: boolean;
-  onToggleTheme: () => void;
   onLoginSuccess?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, onLogout, isDarkMode, onToggleTheme, onLoginSuccess }) => {
+export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }) => {
   const { t, i18n } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const navigate = useNavigate();
@@ -71,11 +69,11 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, isDarkMode, onTo
         }
       }
     } catch (err: any) {
-      console.error('Login error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
-        // User closed the popup, no need to show an alert
+        // User closed the popup, no need to show an alert or log an error
         return;
       }
+      console.error('Login error:', err);
       if (err.message.includes('Firebase is not configured')) {
         alert('Authentication is not configured. Please set up Firebase environment variables.');
       } else {
@@ -94,14 +92,13 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, isDarkMode, onTo
         <div className="flex items-center space-x-12">
           <Link to="/" className="flex flex-col group">
             <span className="text-5xl font-serif font-black tracking-tighter text-navy dark:text-white leading-none group-hover:text-gold transition-colors duration-500">TAHQIQ</span>
-            <span className="text-[9px] font-sans font-bold uppercase tracking-[0.5em] text-gold mt-1">Analytical Insight</span>
           </Link>
           
           <div className="hidden md:block h-12 w-[1px] bg-navy/10 dark:bg-gold/10"></div>
           
           <div className="hidden md:flex flex-col">
-            <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-navy/40 dark:text-gold/30">Current Edition</span>
-            <span className="text-xs font-serif italic text-navy/80 dark:text-gold/60">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-navy/40 dark:text-gold/30">{t('common.current_edition')}</span>
+            <span className="text-xs font-serif italic text-navy/80 dark:text-gold/60">{new Date().toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
           </div>
         </div>
 
@@ -114,15 +111,6 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, isDarkMode, onTo
           >
             <Lock size={18} />
           </Link>
-
-          {/* Theme Toggle */}
-          <button 
-            onClick={onToggleTheme}
-            className="p-2 rounded-full border border-navy/5 dark:border-gold/10 text-navy dark:text-gold hover:bg-navy/5 dark:hover:bg-gold/5 transition-all duration-300"
-            aria-label="Toggle theme"
-          >
-            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
 
           <div className="flex items-center space-x-4 text-[10px] font-bold font-sans text-navy/40 dark:text-gold/30">
             {['uz', 'en', 'ru'].map((lng, idx) => (
@@ -143,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, isDarkMode, onTo
           {user ? (
             <div className="flex items-center space-x-6">
               <div className="hidden sm:flex flex-col items-end">
-                <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-navy/40 dark:text-gold/30">Member</span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-navy/40 dark:text-gold/30">{t('common.member')}</span>
                 <span className="text-xs font-bold text-navy dark:text-white">{user.name}</span>
               </div>
               <div className="relative group">
@@ -200,8 +188,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, isDarkMode, onTo
                     <User size={32} className="text-navy dark:text-white" />
                   </div>
 
-                  <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-2">Welcome Back</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Sign in to access exclusive content and analysis</p>
+                  <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-2">{t('auth.welcome_back')}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">{t('auth.sign_in_desc')}</p>
                   
                   <div className="space-y-4">
                     <button
@@ -231,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, isDarkMode, onTo
                               fill="#EA4335"
                             />
                           </svg>
-                          <span className="text-sm font-bold text-gray-700 dark:text-white group-hover:text-navy dark:group-hover:text-gray-200">Continue with Google</span>
+                          <span className="text-sm font-bold text-gray-700 dark:text-white group-hover:text-navy dark:group-hover:text-gray-200">{t('auth.continue_google')}</span>
                         </>
                       )}
                     </button>
@@ -248,14 +236,14 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, isDarkMode, onTo
                           <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                             <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.21-1.23 3.69-1.14.87.04 1.93.32 2.65 1.38-2.34 1.43-1.94 4.61.64 5.65-.43 1.37-1.04 2.76-2.06 4.34zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                           </svg>
-                          <span className="text-sm font-bold">Continue with Apple</span>
+                          <span className="text-sm font-bold">{t('auth.continue_apple')}</span>
                         </>
                       )}
                     </button>
                   </div>
                   
                   <p className="mt-8 text-[10px] text-gray-400 uppercase tracking-wider">
-                    By continuing, you agree to our Terms of Service and Privacy Policy.
+                    {t('auth.terms_agree')}
                   </p>
                 </div>
               </motion.div>

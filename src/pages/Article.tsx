@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { User as UserIcon, Lock, Calendar, User as AuthorIcon, Share2, Bookmark, X, Loader2 } from 'lucide-react';
 import { ContentItem, User } from '../types';
+import { PageWrapper } from '../components/PageWrapper';
 
 interface ArticleProps {
   user: User | null;
@@ -21,10 +22,12 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
       setLoading(true);
       try {
         const res = await fetch(`/api/content/${id}`, { credentials: 'include' });
-        const data = await res.json();
-        setItem(data);
+        if (res.ok) {
+          const data = await res.json();
+          setItem(data);
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch article:", err);
       } finally {
         setLoading(false);
       }
@@ -68,10 +71,11 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
         }
       }
     } catch (err: any) {
-      console.error('Login error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
+        // User closed the popup, no need to show an alert or log an error
         return;
       }
+      console.error('Login error:', err);
       if (err.message?.includes('Firebase is not configured')) {
         alert('Authentication is not configured. Please set up Firebase environment variables.');
       } else {
@@ -91,18 +95,14 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
     );
   }
 
-  if (!item) return <div className="text-center py-20">Article not found.</div>;
+  if (!item) return <div className="text-center py-20">{t('article.not_found')}</div>;
 
   const title = i18n.language === 'en' ? item.title_en : i18n.language === 'ru' ? item.title_ru : item.title_uz;
   const excerpt = i18n.language === 'en' ? item.excerpt_en : i18n.language === 'ru' ? item.excerpt_ru : item.excerpt_uz;
   const body = i18n.language === 'en' ? item.body_en : i18n.language === 'ru' ? item.body_ru : item.body_uz;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-white dark:bg-dark-bg transition-colors duration-500"
-    >
+    <PageWrapper className="min-h-screen bg-white dark:bg-dark-bg transition-colors duration-500">
       <article className="pb-32">
         {/* Header */}
         <header className="bg-white dark:bg-dark-card py-24 border-b border-navy/5 dark:border-gold/5 transition-colors duration-500">
@@ -121,7 +121,9 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
               <span className="w-1 h-1 bg-gold rounded-full"></span>
               <div className="flex items-center space-x-3">
                 <Calendar size={14} className="text-gold" />
-                <span className="text-navy dark:text-gray-300">{new Date(item.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                <span className="text-navy dark:text-gray-300">
+                  {new Date(item.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </span>
               </div>
             </div>
           </div>
@@ -145,11 +147,11 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                 <div className="sticky top-40 space-y-10 text-navy/20 dark:text-gold/20">
                   <button className="hover:text-gold transition-colors flex flex-col items-center space-y-2">
                     <Share2 size={24} />
-                    <span className="vertical-text mt-4">Share</span>
+                    <span className="vertical-text mt-4">{t('article.share')}</span>
                   </button>
                   <button className="hover:text-gold transition-colors flex flex-col items-center space-y-2">
                     <Bookmark size={24} />
-                    <span className="vertical-text mt-4">Save</span>
+                    <span className="vertical-text mt-4">{t('article.save')}</span>
                   </button>
                 </div>
               </div>
@@ -174,7 +176,7 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                           <Lock size={32} className="text-gold" />
                         </div>
                         <h2 className="text-3xl font-serif font-bold mb-6 text-white">
-                          Exclusive Analysis
+                          {t('article.exclusive_analysis')}
                         </h2>
                         <p className="text-white/50 dark:text-gray-400 mb-10 max-w-sm mx-auto text-sm font-light leading-relaxed uppercase tracking-widest">
                           {t('auth.gmail_only')}
@@ -247,8 +249,8 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                     <UserIcon size={32} className="text-navy dark:text-gold" />
                   </div>
 
-                  <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-2">Welcome Back</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">Sign in to access exclusive content and analysis</p>
+                  <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-2">{t('auth.welcome_back')}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">{t('auth.sign_in_desc')}</p>
                   
                   <div className="space-y-4">
                     <button
@@ -278,7 +280,7 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                               fill="#EA4335"
                             />
                           </svg>
-                          <span className="text-sm font-bold text-gray-700 dark:text-gray-200 group-hover:text-navy dark:group-hover:text-white">Continue with Google</span>
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-200 group-hover:text-navy dark:group-hover:text-white">{t('auth.continue_google')}</span>
                         </>
                       )}
                     </button>
@@ -295,14 +297,14 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                           <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                             <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74 1.18 0 2.21-1.23 3.69-1.14.87.04 1.93.32 2.65 1.38-2.34 1.43-1.94 4.61.64 5.65-.43 1.37-1.04 2.76-2.06 4.34zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                           </svg>
-                          <span className="text-sm font-bold">Continue with Apple</span>
+                          <span className="text-sm font-bold">{t('auth.continue_apple')}</span>
                         </>
                       )}
                     </button>
                   </div>
                   
                   <p className="mt-8 text-[10px] text-gray-400 uppercase tracking-wider">
-                    By continuing, you agree to our Terms of Service and Privacy Policy.
+                    {t('auth.terms_agree')}
                   </p>
                 </div>
               </motion.div>
@@ -311,6 +313,6 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
         </AnimatePresence>,
         document.body
       )}
-    </motion.div>
+    </PageWrapper>
   );
 };
