@@ -25,6 +25,8 @@ const resources = {
         gmail_only: "Faqat Google Gmail orqali",
         welcome_back: "Xush kelibsiz",
         sign_in_desc: "Eksklyuziv kontent va tahlillarni o'qish uchun tizimga kiring",
+        register_title: "Xush kelibsiz",
+        register_desc: "Davom etish uchun ma'lumotlaringizni kiriting",
         continue_google: "Google orqali davom etish",
         continue_apple: "Apple orqali davom etish",
         terms_agree: "Davom etish orqali siz bizning Xizmat ko'rsatish shartlari va Maxfiylik siyosatimizga rozilik bildirasiz."
@@ -196,6 +198,8 @@ const resources = {
         gmail_only: "Google Gmail only",
         welcome_back: "Welcome Back",
         sign_in_desc: "Sign in to access exclusive content and analysis",
+        register_title: "Welcome",
+        register_desc: "Please enter your details to continue",
         continue_google: "Continue with Google",
         continue_apple: "Continue with Apple",
         terms_agree: "By continuing, you agree to our Terms of Service and Privacy Policy."
@@ -367,6 +371,8 @@ const resources = {
         gmail_only: "Только через Google Gmail",
         welcome_back: "С возвращением",
         sign_in_desc: "Войдите, чтобы получить доступ к эксклюзивному контенту",
+        register_title: "Добро пожаловать",
+        register_desc: "Пожалуйста, введите свои данные, чтобы продолжить",
         continue_google: "Продолжить с Google",
         continue_apple: "Продолжить с Apple",
         terms_agree: "Продолжая, вы соглашаетесь с нашими Условиями обслуживания и Политикой конфиденциальности."

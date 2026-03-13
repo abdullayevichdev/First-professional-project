@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download } from 'lucide-react';
+import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download, Trash2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
 import { PageWrapper } from '../components/PageWrapper';
+import { ContentItem } from '../types';
 
 const parseDate = (dateString: string) => {
   if (!dateString) return new Date();
@@ -40,28 +41,32 @@ export const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'activity' | 'departed'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'activity' | 'departed' | 'content'>('users');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [activity, setActivity] = useState<AdminActivity[]>([]);
+  const [contentList, setContentList] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Check if already authenticated (simple check, real auth happens on API calls)
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch('/api/admin/users', { credentials: 'include' });
-        if (res.ok) {
-          setIsAuthenticated(true);
-          fetchData();
-        }
-      } catch (err) {
-        // Not authenticated
-      }
-    };
-    checkAuth();
-  }, []);
+  // New Content Form State
+  const [contentForm, setContentForm] = useState({
+    type: 'article',
+    category: 'uzbekistan',
+    title_uz: '',
+    title_ru: '',
+    title_en: '',
+    excerpt_uz: '',
+    excerpt_ru: '',
+    excerpt_en: '',
+    body_uz: '',
+    body_ru: '',
+    body_en: '',
+    author: '',
+    video_url: ''
+  });
+
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -78,9 +83,10 @@ export const Admin: React.FC = () => {
   const fetchData = async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
-      const [usersRes, activityRes] = await Promise.all([
+      const [usersRes, activityRes, contentRes] = await Promise.all([
         fetch('/api/admin/users', { credentials: 'include' }),
-        fetch('/api/admin/activity', { credentials: 'include' })
+        fetch('/api/admin/activity', { credentials: 'include' }),
+        fetch('/api/content')
       ]);
       
       if (usersRes.ok) {
@@ -90,6 +96,10 @@ export const Admin: React.FC = () => {
       if (activityRes.ok) {
         const data = await activityRes.json();
         if (Array.isArray(data)) setActivity(data);
+      }
+      if (contentRes.ok) {
+        const data = await contentRes.json();
+        if (Array.isArray(data)) setContentList(data);
       }
     } catch (err) {
       console.error("Failed to fetch data", err);
@@ -149,6 +159,67 @@ export const Admin: React.FC = () => {
       }
     } catch (err) {
       alert(t('admin.msg_error'));
+    }
+  };
+
+  const handleAddContent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/content', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contentForm)
+      });
+      
+      if (res.ok) {
+        alert('Yangi ma\'lumot muvaffaqiyatli qo\'shildi va foydalanuvchilarga xabar yuborildi!');
+        fetchData(false);
+        setContentForm({
+          type: 'article',
+          category: 'uzbekistan',
+          title_uz: '',
+          title_ru: '',
+          title_en: '',
+          excerpt_uz: '',
+          excerpt_ru: '',
+          excerpt_en: '',
+          body_uz: '',
+          body_ru: '',
+          body_en: '',
+          author: '',
+          video_url: ''
+        });
+      } else {
+        alert('Xatolik yuz berdi');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Server xatosi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteContent = async (id: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/content/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        fetchData(false);
+        setDeleteConfirmId(null);
+      } else {
+        console.error('O\'chirishda xatolik');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -334,6 +405,16 @@ export const Admin: React.FC = () => {
           >
             {t('admin.departed_users')}
           </button>
+          <button
+            onClick={() => setActiveTab('content')}
+            className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${
+              activeTab === 'content' 
+                ? 'text-navy dark:text-gold border-b-2 border-navy dark:border-gold' 
+                : 'text-gray-400 hover:text-navy dark:hover:text-gold'
+            }`}
+          >
+            Ma'lumotlar boshqaruvi
+          </button>
         </div>
 
         {/* Content */}
@@ -420,46 +501,203 @@ export const Admin: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'departed' && (
-          <div className="bg-white dark:bg-dark-card rounded-sm shadow-sm overflow-hidden">
-             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-navy/5 dark:bg-gold/5">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.time')}</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.user')}</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.email')}</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.event')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
-                  {activity.filter(log => log.event_type === 'logout').map((log) => (
-                    <tr key={log.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-500 font-mono">
-                        {log.timestamp ? parseDate(log.timestamp).toLocaleString() : 'Unknown'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-navy dark:text-white font-medium">
-                        {log.name || 'Unknown'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {log.email || 'Unknown'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800">
-                          {log.event_type}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {activity.filter(log => log.event_type === 'logout').length === 0 && (
+        {activeTab === 'content' && (
+          <div className="bg-white dark:bg-dark-card rounded-sm shadow-sm p-8">
+            <h3 className="text-xl font-serif font-bold text-navy dark:text-white mb-8">Yangi ma'lumot qo'shish</h3>
+            <form onSubmit={handleAddContent} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Turi</label>
+                  <select 
+                    value={contentForm.type}
+                    onChange={(e) => setContentForm({...contentForm, type: e.target.value})}
+                    className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
+                  >
+                    <option value="article">Maqola</option>
+                    <option value="video">Video</option>
+                  </select>
+                </div>
+                <div className="space-y-4">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Bo'lim</label>
+                  <select 
+                    value={contentForm.category}
+                    onChange={(e) => setContentForm({...contentForm, category: e.target.value})}
+                    className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
+                  >
+                    <option value="uzbekistan">O'zbekiston Siyosati</option>
+                    <option value="global">Global Siyosat</option>
+                    <option value="speech">Nutq Tahlili</option>
+                    <option value="opinion">Mulohaza va Tahlil</option>
+                    <option value="historical">Tarixiy Kontekst</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha (UZ)</label>
+                    <input 
+                      required
+                      type="text"
+                      value={contentForm.title_uz}
+                      onChange={(e) => setContentForm({...contentForm, title_uz: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha (RU)</label>
+                    <input 
+                      required
+                      type="text"
+                      value={contentForm.title_ru}
+                      onChange={(e) => setContentForm({...contentForm, title_ru: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha (EN)</label>
+                    <input 
+                      required
+                      type="text"
+                      value={contentForm.title_en}
+                      onChange={(e) => setContentForm({...contentForm, title_en: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha (UZ)</label>
+                    <textarea 
+                      required
+                      value={contentForm.excerpt_uz}
+                      onChange={(e) => setContentForm({...contentForm, excerpt_uz: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-24 resize-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha (RU)</label>
+                    <textarea 
+                      required
+                      value={contentForm.excerpt_ru}
+                      onChange={(e) => setContentForm({...contentForm, excerpt_ru: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-24 resize-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha (EN)</label>
+                    <textarea 
+                      required
+                      value={contentForm.excerpt_en}
+                      onChange={(e) => setContentForm({...contentForm, excerpt_en: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-24 resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn (UZ)</label>
+                    <textarea 
+                      value={contentForm.body_uz}
+                      onChange={(e) => setContentForm({...contentForm, body_uz: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-48 resize-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn (RU)</label>
+                    <textarea 
+                      value={contentForm.body_ru}
+                      onChange={(e) => setContentForm({...contentForm, body_ru: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-48 resize-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn (EN)</label>
+                    <textarea 
+                      value={contentForm.body_en}
+                      onChange={(e) => setContentForm({...contentForm, body_en: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-48 resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Muallif</label>
+                    <input 
+                      required
+                      type="text"
+                      value={contentForm.author}
+                      onChange={(e) => setContentForm({...contentForm, author: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Video URL (ixtiyoriy)</label>
+                    <input 
+                      type="text"
+                      value={contentForm.video_url}
+                      onChange={(e) => setContentForm({...contentForm, video_url: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={loading}
+                className="w-full py-5 bg-navy text-white font-bold uppercase tracking-widest rounded shadow-xl hover:bg-gold transition-all disabled:opacity-50"
+              >
+                {loading ? 'Yuklanmoqda...' : 'Ma\'lumotni joylashtirish va xabar yuborish'}
+              </button>
+            </form>
+
+            <div className="mt-16">
+              <h3 className="text-xl font-serif font-bold text-navy dark:text-white mb-8">Mavjud ma'lumotlar</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-navy/5 dark:bg-gold/5">
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500">
-                        {t('admin.no_departed')}
-                      </td>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Sarlavha</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Turi</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Bo'lim</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Sana</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Harakatlar</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
+                    {contentList.filter(i => i.is_admin_added).map((item) => (
+                      <tr key={item.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
+                        <td className="px-6 py-4">
+                          <span className="font-medium text-sm text-navy dark:text-white">{item.title_uz}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs uppercase tracking-wider text-gray-500">{item.type}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs uppercase tracking-wider text-gray-500">{item.category}</span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <button 
+                            onClick={() => setDeleteConfirmId(item.id)}
+                            className="text-red-500 hover:text-red-700 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"
+                            title="O'chirish"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -500,6 +738,40 @@ export const Admin: React.FC = () => {
                 >
                   <Send size={14} />
                   <span>{t('admin.send')}</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[110] p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-dark-card w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-navy/5 dark:border-gold/10"
+          >
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash2 size={32} className="text-red-500" />
+              </div>
+              <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-4">Ma'lumotni o'chirish</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8">Haqiqatan ham ushbu ma'lumotni o'chirib tashlamoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.</p>
+              
+              <div className="flex flex-col space-y-3">
+                <button 
+                  onClick={() => handleDeleteContent(deleteConfirmId)}
+                  disabled={loading}
+                  className="w-full py-4 bg-red-500 text-white font-bold uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50"
+                >
+                  {loading ? 'O\'chirilmoqda...' : 'Ha, o\'chirilsin'}
+                </button>
+                <button 
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="w-full py-4 bg-gray-100 dark:bg-white/5 text-navy dark:text-white font-bold uppercase tracking-widest rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                >
+                  Bekor qilish
                 </button>
               </div>
             </div>

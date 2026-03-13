@@ -13,6 +13,7 @@ import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { Glossary } from './pages/Glossary';
 import { Admin } from './pages/Admin';
+import { Profile } from './pages/Profile';
 import { User } from './types';
 
 export const SwipeContext = React.createContext<'left' | 'right' | null>(null);
@@ -32,6 +33,7 @@ function AnimatedRoutes({ user, swipeDirection }: { user: User | null, swipeDire
           <Route path="/contact" element={<Contact />} />
           <Route path="/glossary" element={<Glossary />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/profile" element={<Profile user={user} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AnimatePresence>
@@ -49,15 +51,27 @@ export default function App() {
   }, []);
 
   const fetchUser = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30s
+
     try {
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      const res = await fetch('/api/auth/me', { 
+        credentials: 'include',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         setUser(data);
       } else {
         setUser(null);
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.warn('Fetch user timed out after 30s');
+      } else {
+        console.error('Fetch user error:', err);
+      }
       setUser(null);
     } finally {
       setLoading(false);

@@ -19,16 +19,27 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
 
   useEffect(() => {
     const fetchData = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30s
+
       try {
-        const res = await fetch('/api/content', { credentials: 'include' });
+        const res = await fetch('/api/content', { 
+          credentials: 'include',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {
             setContent(data);
           }
         }
-      } catch (error) {
-        console.error("Failed to fetch content:", error);
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.warn('Fetch content timed out after 30s');
+        } else {
+          console.error("Failed to fetch content:", error);
+        }
       } finally {
         setLoading(false);
       }

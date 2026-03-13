@@ -1,8 +1,21 @@
+export interface Notification {
+  id: string;
+  message: string;
+  contentId: string;
+  timestamp: string;
+  isSeen: boolean;
+}
+
 export interface User {
   id: string;
-  email: string;
+  email?: string;
   name: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  phone: string;
   picture: string;
+  notifications?: Notification[];
 }
 
 export interface ContentItem {
@@ -22,6 +35,7 @@ export interface ContentItem {
   video_url?: string;
   created_at: string;
   is_preview?: boolean;
+  is_admin_added?: boolean;
 }
 
 export type Language = 'uz' | 'en' | 'ru';

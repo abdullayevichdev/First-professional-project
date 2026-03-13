@@ -16,7 +16,6 @@
     "@types/cookie-parser": "^1.4.10",
     "@vitejs/plugin-react": "^5.0.4",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^12.4.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",

@@ -1,10 +1,12 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCRI_uFBdXc20slLGWbm0K53GBT6mfgODE",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "tahqiq-87f79.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "tahqiq-87f79",
+  // Ensure this matches your Firebase project ID. 
+  // For most projects, it's [project-id].firebasestorage.app or [project-id].appspot.com
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "tahqiq-87f79.firebasestorage.app",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "415984827866",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:415984827866:web:08e196f183a0541d4894e3",
@@ -20,12 +22,17 @@ export const appleProvider = new OAuthProvider('apple.com');
 
 export const signInWithGoogle = async () => {
   if (!auth) throw new Error("Firebase is not configured. Please add environment variables.");
-  return signInWithPopup(auth, googleProvider);
+  return signInWithRedirect(auth, googleProvider);
 };
 
 export const signInWithApple = async () => {
   if (!auth) throw new Error("Firebase is not configured. Please add environment variables.");
-  return signInWithPopup(auth, appleProvider);
+  return signInWithRedirect(auth, appleProvider);
+};
+
+export const handleRedirectResult = async () => {
+  if (!auth) return null;
+  return getRedirectResult(auth);
 };
 
 export const logOut = async () => {

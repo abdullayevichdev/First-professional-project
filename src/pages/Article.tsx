@@ -42,48 +42,20 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
     setIsLoggingIn(true);
     try {
       const { signInWithGoogle, signInWithApple } = await import('../lib/firebase');
-      let result;
       if (provider === 'google') {
-        result = await signInWithGoogle();
+        await signInWithGoogle();
       } else {
-        result = await signInWithApple();
+        await signInWithApple();
       }
-
-      if (result && result.user) {
-        // Sync with backend to set cookie
-        const res = await fetch('/api/auth/firebase-sync', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            uid: result.user.uid,
-            email: result.user.email,
-            name: result.user.displayName,
-            picture: result.user.photoURL
-          })
-        });
-
-        if (res.ok) {
-          // Trigger a global message to update user state without reloading
-          window.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
-        } else {
-          alert('Failed to sync user session with server.');
-        }
-      }
+      // The page will redirect
     } catch (err: any) {
-      if (err.code === 'auth/popup-closed-by-user') {
-        // User closed the popup, no need to show an alert or log an error
-        return;
-      }
       console.error('Login error:', err);
       if (err.message?.includes('Firebase is not configured')) {
         alert('Authentication is not configured. Please set up Firebase environment variables.');
       } else {
         alert('An error occurred during login. Please try again.');
       }
-    } finally {
       setIsLoggingIn(false);
-      setShowLoginModal(false);
     }
   };
 
