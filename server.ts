@@ -35,7 +35,7 @@ dotenv.config();
 
 const app = express();
 app.set("trust proxy", 1);
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const JWT_SECRET = process.env.VITE_JWT_SECRET || "tahqiq-super-secret-key-2026";
 
 // Firebase setup
