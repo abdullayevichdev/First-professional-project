@@ -137,7 +137,7 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(400).json({ error: "Login band, boshqa login tanlang" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 8);
     const newUserRef = doc(collection(db, "users"));
     const userId = newUserRef.id;
 
@@ -163,7 +163,8 @@ app.post("/api/auth/register", async (req, res) => {
     await setDoc(newUserRef, userData);
     console.log("User document created successfully");
 
-    await logActivity(userId, username, userData.name, "register", undefined, "Ro'yxatdan o'tdi");
+    // Log activity in background without waiting
+    logActivity(userId, username, userData.name, "register", undefined, "Ro'yxatdan o'tdi").catch(console.error);
 
     const token = generateToken(userId);
     res.cookie("auth_token", token, {
@@ -206,11 +207,12 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Login yoki parol noto'g'ri" });
     }
 
-    await updateDoc(doc(db, "users", userDoc.id), {
+    // Update last login and log activity in background
+    updateDoc(doc(db, "users", userDoc.id), {
       last_login: new Date().toISOString()
-    });
+    }).catch(console.error);
 
-    await logActivity(userDoc.id, userData.username || userData.email, userData.name, "login", undefined, "Tizimga kirdi");
+    logActivity(userDoc.id, userData.username || userData.email, userData.name, "login", undefined, "Tizimga kirdi").catch(console.error);
 
     const token = generateToken(userDoc.id);
     res.cookie("auth_token", token, {
