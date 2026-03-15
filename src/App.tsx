@@ -92,12 +92,6 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      const { logOut } = await import('./lib/firebase');
-      await logOut();
-    } catch (e) {
-      console.error('Firebase logout error:', e);
-    }
-    try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (e) {
       console.error('Server logout error:', e);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download, Trash2 } from 'lucide-react';
+import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download, Trash2, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
@@ -41,10 +41,12 @@ export const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'activity' | 'departed' | 'content'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'activity' | 'departed' | 'content' | 'newsletter' | 'messages'>('users');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [activity, setActivity] = useState<AdminActivity[]>([]);
   const [contentList, setContentList] = useState<ContentItem[]>([]);
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -69,24 +71,61 @@ export const Admin: React.FC = () => {
 
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let eventSource: EventSource | null = null;
+    
     if (isAuthenticated) {
-      interval = setInterval(() => {
+      setLoading(true);
+      eventSource = new EventSource('/api/admin/stream', { withCredentials: true });
+      
+      eventSource.addEventListener('users', (e) => {
+        const data = JSON.parse(e.data);
+        if (Array.isArray(data)) setUsers(data);
+        setLoading(false);
+      });
+      
+      eventSource.addEventListener('activity', (e) => {
+        const data = JSON.parse(e.data);
+        if (Array.isArray(data)) setActivity(data);
+      });
+      
+      eventSource.addEventListener('content', (e) => {
+        const data = JSON.parse(e.data);
+        if (Array.isArray(data)) setContentList(data);
+      });
+      
+      eventSource.addEventListener('newsletter', (e) => {
+        const data = JSON.parse(e.data);
+        if (Array.isArray(data)) setSubscribers(data);
+      });
+      
+      eventSource.addEventListener('messages', (e) => {
+        const data = JSON.parse(e.data);
+        if (Array.isArray(data)) setMessages(data);
+      });
+
+      eventSource.onerror = (err) => {
+        console.error("SSE connection error", err);
+        // Fallback to manual fetch if SSE fails
         fetchData(false);
-      }, 10000);
+      };
     }
+    
     return () => {
-      if (interval) clearInterval(interval);
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, [isAuthenticated]);
 
   const fetchData = async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
-      const [usersRes, activityRes, contentRes] = await Promise.all([
+      const [usersRes, activityRes, contentRes, newsletterRes, messagesRes] = await Promise.all([
         fetch('/api/admin/users', { credentials: 'include' }),
         fetch('/api/admin/activity', { credentials: 'include' }),
-        fetch('/api/content')
+        fetch('/api/content'),
+        fetch('/api/admin/newsletter', { credentials: 'include' }),
+        fetch('/api/admin/messages', { credentials: 'include' })
       ]);
       
       if (usersRes.ok) {
@@ -100,6 +139,14 @@ export const Admin: React.FC = () => {
       if (contentRes.ok) {
         const data = await contentRes.json();
         if (Array.isArray(data)) setContentList(data);
+      }
+      if (newsletterRes.ok) {
+        const data = await newsletterRes.json();
+        if (Array.isArray(data)) setSubscribers(data);
+      }
+      if (messagesRes.ok) {
+        const data = await messagesRes.json();
+        if (Array.isArray(data)) setMessages(data);
       }
     } catch (err) {
       console.error("Failed to fetch data", err);
@@ -136,6 +183,7 @@ export const Admin: React.FC = () => {
     } catch (err) {
       console.error('Logout failed', err);
     }
+    setIsAuthenticated(false);
     navigate('/');
   };
 
@@ -147,13 +195,16 @@ export const Admin: React.FC = () => {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedUser.id, message: messageText })
+        body: JSON.stringify({ userId: selectedUser.id, message: messageText, userName: selectedUser.name })
       });
       
       if (res.ok) {
         alert(t('admin.msg_success'));
         setMessageText('');
         setSelectedUser(null);
+        // Refresh messages after sending
+        const msgRes = await fetch('/api/admin/messages', { credentials: 'include' });
+        if (msgRes.ok) setMessages(await msgRes.json());
       } else {
         alert(t('admin.msg_failed'));
       }
@@ -415,6 +466,26 @@ export const Admin: React.FC = () => {
           >
             Ma'lumotlar boshqaruvi
           </button>
+          <button
+            onClick={() => setActiveTab('newsletter')}
+            className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${
+              activeTab === 'newsletter' 
+                ? 'text-navy dark:text-gold border-b-2 border-navy dark:border-gold' 
+                : 'text-gray-400 hover:text-navy dark:hover:text-gold'
+            }`}
+          >
+            Obunachilar
+          </button>
+          <button
+            onClick={() => setActiveTab('messages')}
+            className={`pb-4 text-xs font-bold uppercase tracking-widest transition-colors ${
+              activeTab === 'messages' 
+                ? 'text-navy dark:text-gold border-b-2 border-navy dark:border-gold' 
+                : 'text-gray-400 hover:text-navy dark:hover:text-gold'
+            }`}
+          >
+            Xabarlar
+          </button>
         </div>
 
         {/* Content */}
@@ -425,7 +496,9 @@ export const Admin: React.FC = () => {
                 <thead className="bg-navy/5 dark:bg-gold/5">
                   <tr>
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.user')}</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.email')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Login / Email</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Telefon</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Turi</th>
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.last_active')}</th>
                     <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.actions')}</th>
                   </tr>
@@ -435,11 +508,25 @@ export const Admin: React.FC = () => {
                     <tr key={user.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
-                          <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
+                          {user.picture ? (
+                            <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
+                              {user.name?.charAt(0) || 'U'}
+                            </div>
+                          )}
                           <span className="font-medium text-sm text-navy dark:text-white">{user.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{user.email}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{user.username || user.email || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{user.phone || '-'}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          user.username ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {user.username ? 'Sayt orqali' : 'Google/Apple'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {user.last_login ? parseDate(user.last_login).toLocaleString() : 'Never'}
                       </td>
@@ -485,18 +572,193 @@ export const Admin: React.FC = () => {
                           log.event_type === 'login' ? 'bg-green-100 text-green-800' :
                           log.event_type === 'view' ? 'bg-blue-100 text-blue-800' :
                           log.event_type === 'logout' ? 'bg-red-100 text-red-800' :
+                          log.event_type === 'share' ? 'bg-purple-100 text-purple-800' :
+                          log.event_type === 'save' ? 'bg-yellow-100 text-yellow-800' :
+                          log.event_type === 'register' ? 'bg-emerald-100 text-emerald-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {log.event_type}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {log.content_title || log.details || '-'}
+                        {log.content_title ? `${log.details}: ${log.content_title}` : log.details || '-'}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'departed' && (
+          <div className="bg-white dark:bg-dark-card rounded-sm shadow-sm overflow-hidden">
+            <div className="p-8 border-b border-navy/5 dark:border-gold/5">
+              <h3 className="text-xl font-serif font-bold text-navy dark:text-white">Inaktiv foydalanuvchilar</h3>
+              <p className="text-sm text-gray-500 mt-2">So'nggi 30 kun davomida tizimga kirmagan foydalanuvchilar ro'yxati.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-navy/5 dark:bg-gold/5">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.user')}</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Login / Email</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Telefon</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Oxirgi faollik</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Inaktivlik davri</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
+                  {users.filter(u => {
+                    if (!u.last_login) return true;
+                    const lastLogin = parseDate(u.last_login);
+                    const diff = Date.now() - lastLogin.getTime();
+                    return diff > 30 * 24 * 60 * 60 * 1000;
+                  }).map((user) => (
+                    <tr key={user.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-3">
+                          {user.picture ? (
+                            <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
+                              {user.name?.charAt(0) || 'U'}
+                            </div>
+                          )}
+                          <span className="font-medium text-sm text-navy dark:text-white">{user.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{user.username || user.email || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{user.phone || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                        {user.last_login ? parseDate(user.last_login).toLocaleDateString() : 'Hech qachon'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-bold text-red-500 uppercase tracking-wider">
+                          {user.last_login 
+                            ? `${Math.floor((Date.now() - parseDate(user.last_login).getTime()) / (1000 * 60 * 60 * 24))} kun`
+                            : 'Noma\'lum'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'newsletter' && (
+          <div className="bg-white dark:bg-dark-card rounded-sm shadow-sm overflow-hidden">
+            <div className="p-8 border-b border-navy/5 dark:border-gold/5 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-serif font-bold text-navy dark:text-white">Newsletter Obunachilari</h3>
+                <p className="text-sm text-gray-500 mt-2">Yangiliklarga obuna bo'lgan foydalanuvchilar ro'yxati.</p>
+              </div>
+              <div className="bg-gold/10 text-gold px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest">
+                {subscribers.length} Obunachi
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-navy/5 dark:bg-gold/5">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Email</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Obuna sanasi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
+                  {subscribers.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
+                      <td className="px-6 py-4 text-sm text-navy dark:text-white font-medium">{sub.email}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {sub.subscribed_at ? parseDate(sub.subscribed_at).toLocaleString() : 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'messages' && (
+          <div className="space-y-8">
+            <div className="bg-white dark:bg-dark-card rounded-sm shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-navy/5 dark:border-gold/5">
+                <h3 className="text-xl font-serif font-bold text-navy dark:text-white">Foydalanuvchilarga xabar yuborish</h3>
+                <p className="text-sm text-gray-500 mt-2">Saytdagi barcha foydalanuvchilar ro'yxati. Ularga to'g'ridan-to'g'ri xabar yuborishingiz mumkin.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-navy/5 dark:bg-gold/5">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">{t('admin.user')}</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Login / Email</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Telefon</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Amallar</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-3">
+                            {user.picture ? (
+                              <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
+                                {user.name?.charAt(0) || 'U'}
+                              </div>
+                            )}
+                            <span className="font-medium text-sm text-navy dark:text-white">{user.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{user.username || user.email || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{user.phone || '-'}</td>
+                        <td className="px-6 py-4">
+                          <button 
+                            onClick={() => setSelectedUser(user)}
+                            className="flex items-center space-x-2 px-4 py-2 bg-navy text-white rounded text-[10px] font-bold uppercase tracking-widest hover:bg-gold transition-colors"
+                          >
+                            <Send size={14} />
+                            <span>Xabar yuborish</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-dark-card rounded-sm shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-navy/5 dark:border-gold/5">
+                <h3 className="text-xl font-serif font-bold text-navy dark:text-white">Yuborilgan xabarlar tarixi</h3>
+                <p className="text-sm text-gray-500 mt-2">Adminlar tomonidan foydalanuvchilarga yuborilgan barcha xabarlar.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-navy/5 dark:bg-gold/5">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Kimga</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Xabar</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Sana</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
+                    {messages.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()).map((msg) => (
+                      <tr key={msg.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
+                        <td className="px-6 py-4 text-sm text-navy dark:text-white font-medium">{msg.to_name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 max-w-md truncate">{msg.message}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {msg.sent_at ? parseDate(msg.sent_at).toLocaleString() : 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -714,7 +976,7 @@ export const Admin: React.FC = () => {
             <div className="bg-navy p-4 flex justify-between items-center">
               <h3 className="text-white font-bold uppercase tracking-widest text-sm">{t('admin.message_to')} {selectedUser.name}</h3>
               <button onClick={() => setSelectedUser(null)} className="text-white/50 hover:text-white">
-                <LogOut size={18} className="rotate-180" /> {/* Using LogOut as close icon equivalent */}
+                <X size={18} />
               </button>
             </div>
             <div className="p-6 space-y-4">

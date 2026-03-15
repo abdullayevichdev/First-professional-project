@@ -2,9 +2,9 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import { Globe, User, LogOut, Menu, X, Sun, Moon, Lock, Loader2 } from 'lucide-react';
+import { Globe, User, LogOut, Menu, X, Sun, Moon, Lock, Loader2, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User as UserType } from '../types';
+import { User as UserType, ContentItem } from '../types';
 import { AuthModal } from './AuthModal';
 
 interface HeaderProps {
@@ -16,10 +16,31 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }) => {
   const { t, i18n } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchResults, setSearchResults] = React.useState<ContentItem[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
   const navigate = useNavigate();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const navItems = [
@@ -28,6 +49,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
     { name: t('nav.global_politics'), path: '/category/global' },
     { name: t('nav.speech_analysis'), path: '/category/speech' },
     { name: t('nav.opinion'), path: '/category/opinion' },
+    { name: t('nav.glossary'), path: '/glossary' },
     { name: t('nav.about'), path: '/about' },
   ];
 
@@ -51,6 +73,14 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
         </div>
 
         <div className="flex items-center space-x-8">
+          {/* Search Button */}
+          <button 
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            className="p-2 rounded-full border border-navy/5 dark:border-gold/10 text-navy dark:text-gold hover:bg-navy/5 dark:hover:bg-gold/5 transition-all duration-300"
+          >
+            <Search size={18} />
+          </button>
+
           {/* Admin Access */}
           <Link 
             to="/admin"
@@ -111,11 +141,74 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
         </div>
       </div>
 
+      {/* Search Overlay */}
+      <AnimatePresence>
+        {isSearchOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute inset-x-0 top-full bg-white dark:bg-dark-card border-b border-navy/10 dark:border-gold/10 shadow-2xl z-40"
+          >
+            <div className="news-container py-12">
+              <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto">
+                <input
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('common.search_placeholder') || "Maqolalarni qidirish..."}
+                  className="w-full bg-gray-50 dark:bg-white/5 border-b-2 border-navy/10 dark:border-gold/20 focus:border-gold outline-none py-4 px-6 text-2xl font-serif text-navy dark:text-white transition-all"
+                />
+                <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gold">
+                  {isSearching ? <Loader2 className="animate-spin" size={24} /> : <Search size={24} />}
+                </button>
+              </form>
+
+              {searchResults.length > 0 && (
+                <div className="mt-12 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {searchResults.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={`/article/${item.id}`}
+                      onClick={() => setIsSearchOpen(false)}
+                      className="flex space-x-4 group"
+                    >
+                      <div className="w-24 h-24 flex-shrink-0 bg-gray-100 dark:bg-white/5 rounded-lg overflow-hidden">
+                        <img 
+                          src={`https://picsum.photos/seed/${item.id}/200/200`} 
+                          alt="" 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-serif font-bold text-navy dark:text-white group-hover:text-gold transition-colors line-clamp-2">
+                          {i18n.language === 'en' ? item.title_en : i18n.language === 'ru' ? item.title_ru : item.title_uz}
+                        </h4>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-2">{item.category}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              
+              {searchQuery && searchResults.length === 0 && !isSearching && (
+                <p className="text-center mt-8 text-gray-400 font-serif italic">Natija topilmadi</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Auth Modal */}
       <AuthModal 
         isOpen={showLoginModal} 
         onClose={() => setShowLoginModal(false)} 
-        onSuccess={() => onLoginSuccess?.()} 
+        onSuccess={(user) => {
+          onLoginSuccess?.();
+          setShowLoginModal(false);
+        }} 
       />
 
       {/* Navigation Bar */}

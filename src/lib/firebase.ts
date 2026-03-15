@@ -5,9 +5,6 @@ const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCRI_uFBdXc20slLGWbm0K53GBT6mfgODE",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "tahqiq-87f79.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "tahqiq-87f79",
-  // Ensure this matches your Firebase project ID. 
-  // For most projects, it's [project-id].firebasestorage.app or [project-id].appspot.com
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "tahqiq-87f79.firebasestorage.app",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "415984827866",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:415984827866:web:08e196f183a0541d4894e3",
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-QX1GSZZ5WS"

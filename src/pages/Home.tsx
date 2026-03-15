@@ -69,13 +69,23 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
   const historicalAnalysis = content.filter(i => i.category === 'historical');
   const opinionAnalysis = content.filter(i => i.category === 'opinion');
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setEmail('');
-      alert(t('common.subscribed') || "Muvaffaqiyatli obuna bo'ldingiz!");
-      setTimeout(() => setSubscribed(false), 5000);
+    if (!email) return;
+    
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (res.ok) {
+        setSubscribed(true);
+        setEmail('');
+        setTimeout(() => setSubscribed(false), 5000);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 

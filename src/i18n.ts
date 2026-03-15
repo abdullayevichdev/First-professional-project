@@ -69,7 +69,8 @@ const resources = {
         current_edition: "Joriy Nashr",
         member: "A'zo",
         admin_access: "Admin Kirish",
-        analytical_insight: "Analitik Tushuncha"
+        analytical_insight: "Analitik Tushuncha",
+        search_placeholder: "Maqolalarni qidirish..."
       },
       footer: {
         desc: "\"Siyosiy nutqlar va global muammolarni dalillarga asoslangan holda tahlil qilib, ta'lim berish va xabardor qilish. Tarix va bugungi kunni bog'lash.\"",
@@ -110,6 +111,8 @@ const resources = {
       article: {
         share: "Ulashish",
         save: "Saqlash",
+        saved: "Saqlandi",
+        copied: "Nusxa olindi",
         exclusive_analysis: "Eksklyuziv Tahlil",
         not_found: "Maqola topilmadi."
       },
@@ -242,7 +245,8 @@ const resources = {
         current_edition: "Current Edition",
         member: "Member",
         admin_access: "Admin Access",
-        analytical_insight: "Analytical Insight"
+        analytical_insight: "Analytical Insight",
+        search_placeholder: "Search articles..."
       },
       footer: {
         desc: "\"Providing evidence-based analysis of political speeches and global issues to educate and inform. Bridging history and the present.\"",
@@ -283,6 +287,8 @@ const resources = {
       article: {
         share: "Share",
         save: "Save",
+        saved: "Saved",
+        copied: "Copied",
         exclusive_analysis: "Exclusive Analysis",
         not_found: "Article not found."
       },
@@ -415,7 +421,8 @@ const resources = {
         current_edition: "Текущий выпуск",
         member: "Участник",
         admin_access: "Доступ администратора",
-        analytical_insight: "Аналитический взгляд"
+        analytical_insight: "Аналитический взгляд",
+        search_placeholder: "Поиск статей..."
       },
       footer: {
         desc: "\"Предоставление обоснованного анализа политических речей и глобальных проблем для обучения и информирования. Связывая историю и современность.\"",
@@ -456,6 +463,8 @@ const resources = {
       article: {
         share: "Поделиться",
         save: "Сохранить",
+        saved: "Сохранено",
+        copied: "Скопировано",
         exclusive_analysis: "Эксклюзивный анализ",
         not_found: "Статья не найдена."
       },

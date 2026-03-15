@@ -1,35 +1,91 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Calendar, Phone, Camera, Loader2, Check } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { X, User, Calendar, Phone, Camera, Loader2, Check, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (user: any) => void;
 }
 
+type AuthMode = 'login' | 'register';
+
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const { t } = useTranslation();
+  const [mode, setMode] = useState<AuthMode>('login');
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    birthDate: '',
     phone: '',
+    username: '',
+    password: '',
+    confirmPassword: '',
     picture: ''
   });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    let newValue = value;
+
+    if (name === 'phone') {
+      // Remove all non-digits
+      const digits = value.replace(/\D/g, '');
+      
+      // Format as +998 XX XXX XX XX
+      if (digits.length <= 12) {
+        let formatted = '+';
+        // Ensure it starts with 998 if it's not empty
+        const d = digits.startsWith('998') ? digits : (digits.length > 0 ? '998' + digits : '');
+        
+        if (d.length > 0) {
+          formatted += d.substring(0, 3); // 998
+          if (d.length > 3) formatted += ' ' + d.substring(3, 5); // XX
+          if (d.length > 5) formatted += ' ' + d.substring(5, 8); // XXX
+          if (d.length > 8) formatted += ' ' + d.substring(8, 10); // XX
+          if (d.length > 10) formatted += ' ' + d.substring(10, 12); // XX
+          newValue = formatted;
+        } else {
+          newValue = '';
+        }
+      } else {
+        // Don't allow more than 12 digits
+        return;
+      }
+    }
+
+    setFormData(prev => ({ ...prev, [name]: newValue }));
+    if (error) setError(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Rasm hajmi 2MB dan oshmasligi kerak');
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData(prev => ({ ...prev, picture: reader.result as string }));
@@ -40,160 +96,176 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    if (mode === 'register' && formData.password !== formData.confirmPassword) {
+      setError('Parollar mos kelmadi');
+      return;
+    }
+
     setLoading(true);
+    const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+    
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+      
+      const data = await res.json();
+      
       if (res.ok) {
-        onSuccess();
+        onSuccess(data.user);
         onClose();
       } else {
-        const data = await res.json();
-        alert(data.error || 'Xatolik yuz berdi');
+        setError(data.error || 'Xatolik yuz berdi');
       }
     } catch (err) {
-      console.error('Registration error:', err);
-      alert('Server bilan bog\'lanishda xatolik');
+      console.error('Auth error:', err);
+      setError('Server bilan bog\'lanishda xatolik');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
+  const toggleMode = () => {
+    setMode(prev => prev === 'login' ? 'register' : 'login');
+    setError(null);
+  };
+
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[10000] overflow-y-auto flex flex-col custom-scrollbar">
+          {/* Full-screen Blurred Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 bg-[#0f172a]/80 backdrop-blur-[12px] pointer-events-auto"
             onClick={onClose}
           />
           
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative bg-white dark:bg-[#0A0A0B] w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden border border-navy/10 dark:border-white/10 z-10"
-          >
-              <div className="flex flex-col md:flex-row min-h-[600px]">
-                {/* Left Side - Visual/Branding */}
-                <div className="hidden md:flex md:w-2/5 bg-navy p-12 flex-col justify-between relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-20">
-                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(197,160,89,0.2),transparent_70%)]"></div>
-                  </div>
-                  
-                  <div className="relative z-10">
-                    <div className="w-12 h-12 bg-gold rounded-xl flex items-center justify-center mb-8">
-                      <span className="font-serif font-bold text-navy text-xl">T</span>
-                    </div>
-                    <h2 className="text-4xl font-serif font-bold text-white leading-tight mb-4">
-                      Tahqiq <br />
-                      <span className="text-gold">Hamjamiyatiga</span> <br />
-                      Xush Kelibsiz
-                    </h2>
-                  </div>
+          {/* Centering Container */}
+          <div className="relative min-h-full w-full flex p-4 sm:p-8 pointer-events-none">
+            {/* Close Button */}
+            <button 
+              onClick={onClose}
+              className="fixed top-4 right-4 md:top-6 md:right-6 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all z-[10010] pointer-events-auto"
+            >
+              <X size={20} />
+            </button>
 
-                  <div className="relative z-10">
-                    <p className="text-white/60 text-sm leading-relaxed font-light">
-                      Siyosiy tahlil va chuqur mulohazalar olamiga xush kelibsiz. Davom etish uchun profilingizni yarating.
-                    </p>
+            {/* Authentication Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="relative bg-white dark:bg-[#0A0A0B] w-full max-w-[420px] rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] border border-white/10 z-10 m-auto pointer-events-auto"
+            >
+              {/* Header with Tabs */}
+              <div className="flex border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-md rounded-t-[2rem] overflow-hidden">
+                <button
+                  onClick={() => setMode('login')}
+                  className={cn(
+                    "flex-1 py-4 text-[10px] font-bold uppercase tracking-[0.2em] transition-all relative",
+                    mode === 'login' ? "text-gold" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  )}
+                >
+                  Kirish
+                  {mode === 'login' && (
+                    <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
+                  )}
+                </button>
+                <button
+                  onClick={() => setMode('register')}
+                  className={cn(
+                    "flex-1 py-4 text-[10px] font-bold uppercase tracking-[0.2em] transition-all relative",
+                    mode === 'register' ? "text-gold" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  )}
+                >
+                  Ro'yxatdan o'tish
+                  {mode === 'register' && (
+                    <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
+                  )}
+                </button>
+              </div>
+
+              <div className="p-6 sm:p-10 relative">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gold text-navy font-serif font-bold text-xl mb-4 shadow-lg shadow-gold/20">
+                    T
                   </div>
+                  <h2 className="text-2xl font-serif font-bold text-navy dark:text-white mb-1">
+                    {mode === 'login' ? 'Xush kelibsiz' : 'Tahqiq Hamjamiyati'}
+                  </h2>
+                  <p className="text-gray-500 dark:text-gray-400 text-[9px] font-bold uppercase tracking-[0.3em]">
+                    {mode === 'login' ? 'Profilingizga kiring' : 'Yangi profil yarating'}
+                  </p>
                 </div>
 
-                {/* Right Side - Form */}
-                <div className="flex-1 p-8 sm:p-12 bg-white dark:bg-[#0A0A0B] relative">
-                  <button 
-                    onClick={onClose}
-                    className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 transition-colors z-20"
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl text-red-600 dark:text-red-400 text-[11px] font-medium text-center"
                   >
-                    <X size={20} />
-                  </button>
+                    {error}
+                  </motion.div>
+                )}
 
-                  <div className="mb-10 md:hidden">
-                    <h2 className="text-2xl font-serif font-bold text-navy dark:text-white mb-2">
-                      Xush kelibsiz
-                    </h2>
-                    <p className="text-gray-500 text-xs uppercase tracking-widest">Profilingizni yarating</p>
-                  </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-8">
-                    <div className="flex flex-col items-center mb-10">
-                      <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="relative w-28 h-28 rounded-full bg-gray-50 dark:bg-white/5 border border-navy/5 dark:border-white/10 flex items-center justify-center cursor-pointer group overflow-hidden transition-all hover:border-gold p-1"
-                      >
-                        <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-navy/20 flex items-center justify-center">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {mode === 'register' && (
+                    <>
+                      <div className="flex flex-col items-center mb-6">
+                        <div 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="relative w-24 h-24 rounded-full bg-gray-50 dark:bg-white/5 border-2 border-dashed border-gray-200 dark:border-white/10 flex items-center justify-center cursor-pointer group overflow-hidden transition-all hover:border-gold shadow-inner"
+                        >
                           {formData.picture ? (
                             <img src={formData.picture} alt="Profile" className="w-full h-full object-cover" />
                           ) : (
-                            <Camera size={28} className="text-gray-300 group-hover:text-gold transition-colors" />
+                            <Camera size={24} className="text-gray-300 group-hover:text-gold transition-colors" />
                           )}
+                          <div className="absolute inset-0 bg-navy/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <span className="text-[9px] font-bold text-white uppercase tracking-widest">Yuklash</span>
+                          </div>
                         </div>
-                        <div className="absolute inset-0 bg-navy/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <span className="text-[9px] font-bold text-white uppercase tracking-[0.2em]">Yuklash</span>
-                        </div>
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          onChange={handleFileChange} 
+                          accept="image/*" 
+                          className="hidden" 
+                        />
+                        <p className="mt-2 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Profil Rasmi</p>
                       </div>
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileChange} 
-                        accept="image/*" 
-                        className="hidden" 
+                    </>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Login</label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                      <input
+                        required
+                        type="text"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        placeholder="foydalanuvchinomi@example.com"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-navy dark:text-white transition-all font-medium text-xs"
                       />
-                      <p className="mt-3 text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em]">Profil Rasmi</p>
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-1">Ism</label>
-                        <input
-                          required
-                          type="text"
-                          name="firstName"
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          placeholder="Ali"
-                          className="w-full px-0 py-3 bg-transparent border-b border-gray-200 dark:border-white/10 focus:border-gold outline-none text-navy dark:text-white transition-all text-lg font-serif"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-1">Familya</label>
-                        <input
-                          required
-                          type="text"
-                          name="lastName"
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          placeholder="Valiyev"
-                          className="w-full px-0 py-3 bg-transparent border-b border-gray-200 dark:border-white/10 focus:border-gold outline-none text-navy dark:text-white transition-all text-lg font-serif"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-1">Tug'ilgan sana</label>
+                  {mode === 'register' && (
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Telefon</label>
                       <div className="relative">
-                        <Calendar className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
-                        <input
-                          required
-                          type="date"
-                          name="birthDate"
-                          value={formData.birthDate}
-                          onChange={handleInputChange}
-                          className="w-full px-0 py-3 bg-transparent border-b border-gray-200 dark:border-white/10 focus:border-gold outline-none text-navy dark:text-white transition-all appearance-none text-lg font-serif"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-1">Telefon raqam</label>
-                      <div className="relative">
-                        <Phone className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                         <input
                           required
                           type="tel"
@@ -201,33 +273,92 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                           value={formData.phone}
                           onChange={handleInputChange}
                           placeholder="+998 90 123 45 67"
-                          className="w-full px-0 py-3 bg-transparent border-b border-gray-200 dark:border-white/10 focus:border-gold outline-none text-navy dark:text-white transition-all text-lg font-serif"
+                          className="w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-navy dark:text-white transition-all font-medium text-xs"
                         />
                       </div>
                     </div>
+                  )}
 
-                    <div className="pt-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Parol</label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                      <input
+                        required
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        placeholder="••••••••"
+                        className="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-navy dark:text-white transition-all font-medium text-xs"
+                      />
                       <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-5 bg-navy text-white font-bold uppercase tracking-[0.3em] text-[10px] rounded-full shadow-2xl shadow-navy/20 hover:bg-gold hover:text-navy transition-all flex items-center justify-center space-x-3 disabled:opacity-50"
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gold transition-colors"
                       >
-                        {loading ? (
-                          <Loader2 className="animate-spin" size={18} />
-                        ) : (
-                          <>
-                            <span>Tasdiqlash</span>
-                            <Check size={16} />
-                          </>
-                        )}
+                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
-                  </form>
-                </div>
+                  </div>
+
+                  {mode === 'register' && (
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Parolni tasdiqlash</label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                        <input
+                          required
+                          type={showPassword ? "text" : "password"}
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleInputChange}
+                          placeholder="••••••••"
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-navy dark:text-white transition-all font-medium text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-4">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-4 bg-gold hover:bg-gold/90 text-navy font-bold rounded-xl shadow-xl shadow-gold/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin" size={18} />
+                      ) : (
+                        <>
+                          <span className="uppercase tracking-[0.2em] text-[10px]">
+                            {mode === 'login' ? 'Kirish' : "Ro'yxatdan o'tish"}
+                          </span>
+                          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={toggleMode}
+                      className="text-[9px] font-bold text-gray-400 hover:text-gold uppercase tracking-[0.2em] transition-colors"
+                    >
+                      {mode === 'login' 
+                        ? "Hisobingiz yo'qmi? Ro'yxatdan o'ting" 
+                        : "Allaqachon hisobingiz bormi? Kiring"}
+                    </button>
+                  </div>
+                </form>
               </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       )}
     </AnimatePresence>
   );
+
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null;
 };

@@ -25,6 +25,19 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
         if (res.ok) {
           const data = await res.json();
           setItem(data);
+          
+          if (user) {
+            fetch('/api/activity/log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event_type: 'view',
+                content_id: id,
+                content_title: data.title_uz || data.title_ru || data.title_en || '',
+                details: 'Maqolani o\'qidi'
+              })
+            }).catch(console.error);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch article:", err);
@@ -37,6 +50,79 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  useEffect(() => {
+    if (user && user.saved_articles && id) {
+      setIsSaved(user.saved_articles.includes(id));
+    }
+  }, [user, id]);
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: item?.title_uz || 'Tahqiq',
+          text: item?.excerpt_uz || '',
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      }
+      
+      if (user && item) {
+        fetch('/api/activity/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_type: 'share',
+            content_id: id,
+            content_title: item.title_uz || item.title_ru || item.title_en || '',
+            details: 'Maqolani ulashdi'
+          })
+        }).catch(console.error);
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/user/save-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ articleId: id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsSaved(data.saved_articles.includes(id));
+        
+        if (item) {
+          fetch('/api/activity/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event_type: 'save',
+              content_id: id,
+              content_title: item.title_uz || item.title_ru || item.title_en || '',
+              details: data.saved_articles.includes(id) ? 'Maqolani saqladi' : 'Maqolani saqlanganlardan olib tashladi'
+            })
+          }).catch(console.error);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to save article:", err);
+    }
+  };
 
   const handleLogin = async (provider: 'google' | 'apple') => {
     setIsLoggingIn(true);
@@ -116,15 +202,34 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
               {/* Sidebar Actions */}
               <div className="hidden lg:block lg:col-span-1">
-                <div className="sticky top-40 space-y-10 text-navy/20 dark:text-gold/20">
-                  <button className="hover:text-gold transition-colors flex flex-col items-center space-y-2">
-                    <Share2 size={24} />
-                    <span className="vertical-text mt-4">{t('article.share')}</span>
-                  </button>
-                  <button className="hover:text-gold transition-colors flex flex-col items-center space-y-2">
-                    <Bookmark size={24} />
-                    <span className="vertical-text mt-4">{t('article.save')}</span>
-                  </button>
+                <div className="sticky top-40 flex flex-col items-center gap-4">
+                  <div className="bg-white dark:bg-[#0A0A0B] border border-gray-100 dark:border-white/5 rounded-full p-2 shadow-sm flex flex-col gap-2">
+                    <button 
+                      onClick={handleShare}
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-navy dark:hover:text-gold hover:bg-gray-50 dark:hover:bg-white/5 transition-all group relative"
+                      title={t('article.share')}
+                    >
+                      <Share2 size={18} />
+                      {/* Tooltip */}
+                      <span className="absolute left-full ml-4 px-2 py-1 bg-navy dark:bg-white text-white dark:text-navy text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                        {isCopied ? t('article.copied') : t('article.share')}
+                      </span>
+                    </button>
+                    
+                    <div className="w-6 h-[1px] bg-gray-100 dark:bg-white/5 mx-auto" />
+
+                    <button 
+                      onClick={handleSave}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all group relative ${isSaved ? 'text-gold bg-gold/10' : 'text-gray-400 hover:text-navy dark:hover:text-gold hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                      title={t('article.save')}
+                    >
+                      <Bookmark size={18} fill={isSaved ? "currentColor" : "none"} />
+                      {/* Tooltip */}
+                      <span className="absolute left-full ml-4 px-2 py-1 bg-navy dark:bg-white text-white dark:text-navy text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                        {isSaved ? t('article.saved') : t('article.save')}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -181,6 +286,24 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                           ></iframe>
                         </div>
                       )}
+
+                      {/* Mobile Actions */}
+                      <div className="lg:hidden mt-12 pt-8 border-t border-gray-100 dark:border-white/5 flex items-center justify-center gap-6">
+                        <button 
+                          onClick={handleShare}
+                          className="flex items-center gap-2 px-6 py-3 rounded-full bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-gold transition-colors"
+                        >
+                          <Share2 size={18} />
+                          <span className="text-sm font-medium">{isCopied ? t('article.copied') : t('article.share')}</span>
+                        </button>
+                        <button 
+                          onClick={handleSave}
+                          className={`flex items-center gap-2 px-6 py-3 rounded-full transition-colors ${isSaved ? 'bg-gold/10 text-gold' : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:text-navy dark:hover:text-gold'}`}
+                        >
+                          <Bookmark size={18} fill={isSaved ? "currentColor" : "none"} />
+                          <span className="text-sm font-medium">{isSaved ? t('article.saved') : t('article.save')}</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

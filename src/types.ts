@@ -16,6 +16,8 @@ export interface User {
   phone: string;
   picture: string;
   notifications?: Notification[];
+  saved_articles?: string[];
+  role?: 'admin' | 'user';
 }
 
 export interface ContentItem {
