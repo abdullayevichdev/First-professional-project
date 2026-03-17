@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path, { dirname } from "path";
 import { fileURLToPath } from 'url';
 import fs from "fs";
@@ -686,6 +685,7 @@ app.get("/api/health", (req, res) => {
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       root: process.cwd(),
       server: { middlewareMode: true, hmr: false, watch: null },
@@ -701,7 +701,7 @@ async function startServer() {
       }
     });
   } else {
-    const distPath = path.join(__dirname, "dist");
+    const distPath = path.join(process.cwd(), "dist");
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));
       app.get("*", (req, res) => {
