@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { User as UserIcon, Lock, Calendar, User as AuthorIcon, Share2, Bookmark, X, Loader2 } from 'lucide-react';
 import { ContentItem, User } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
@@ -137,9 +138,9 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
     } catch (err: any) {
       console.error('Login error:', err);
       if (err.message?.includes('Firebase is not configured')) {
-        alert('Authentication is not configured. Please set up Firebase environment variables.');
+        toast.error('Authentication is not configured. Please set up Firebase environment variables.');
       } else {
-        alert('An error occurred during login. Please try again.');
+        toast.error('An error occurred during login. Please try again.');
       }
       setIsLoggingIn(false);
     }

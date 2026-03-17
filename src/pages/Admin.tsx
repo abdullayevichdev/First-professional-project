@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { toast } from 'react-hot-toast';
 import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download, Trash2, X, CheckCircle, XCircle, Eye, MessageSquare, Sparkles, Languages } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -210,23 +211,23 @@ export const Admin: React.FC = () => {
       });
       
       if (res.ok) {
-        alert(t('admin.msg_success'));
+        toast.success(t('admin.msg_success'));
         setMessageText('');
         setSelectedUser(null);
         // Refresh messages after sending
         const msgRes = await fetch('/api/admin/messages', { credentials: 'include' });
         if (msgRes.ok) setMessages(await msgRes.json());
       } else {
-        alert(t('admin.msg_failed'));
+        toast.error(t('admin.msg_failed'));
       }
     } catch (err) {
-      alert(t('admin.msg_error'));
+      toast.error(t('admin.msg_error'));
     }
   };
 
   const handleAutoTranslate = async () => {
     if (!contentForm.title_uz || !contentForm.excerpt_uz || !contentForm.body_uz) {
-      alert(t('submit_article.fill_uzbek_first'));
+      toast.error(t('submit_article.fill_uzbek_first'));
       return;
     }
 
@@ -249,7 +250,7 @@ export const Admin: React.FC = () => {
       }));
     } catch (err) {
       console.error('Translation failed:', err);
-      alert(t('submit_article.translation_failed'));
+      toast.error(t('submit_article.translation_failed'));
     } finally {
       setIsTranslating(false);
     }
@@ -267,7 +268,7 @@ export const Admin: React.FC = () => {
       });
       
       if (res.ok) {
-        alert('Yangi ma\'lumot muvaffaqiyatli qo\'shildi va foydalanuvchilarga xabar yuborildi!');
+        toast.success('Yangi ma\'lumot muvaffaqiyatli qo\'shildi va foydalanuvchilarga xabar yuborildi!');
         fetchData(false);
         setContentForm({
           type: 'article',
@@ -285,11 +286,11 @@ export const Admin: React.FC = () => {
           video_url: ''
         });
       } else {
-        alert('Xatolik yuz berdi');
+        toast.error('Xatolik yuz berdi');
       }
     } catch (err) {
       console.error(err);
-      alert('Server xatosi');
+      toast.error('Server xatosi');
     } finally {
       setLoading(false);
     }
@@ -327,12 +328,12 @@ export const Admin: React.FC = () => {
       });
       
       if (res.ok) {
-        alert(status === 'accepted' ? 'Maqola qabul qilindi va saytga joylashtirildi!' : 'Maqola rad etildi.');
+        toast.success(status === 'accepted' ? 'Maqola qabul qilindi va saytga joylashtirildi!' : 'Maqola rad etildi.');
         setSelectedSubmission(null);
         setFeedbackText('');
         fetchData(false);
       } else {
-        alert('Xatolik yuz berdi');
+        toast.error('Xatolik yuz berdi');
       }
     } catch (err) {
       console.error(err);

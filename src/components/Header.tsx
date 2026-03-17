@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
     { name: t('nav.opinion'), path: '/category/opinion' },
     { name: t('nav.glossary'), path: '/glossary' },
     { name: t('nav.about'), path: '/about' },
-    { name: 'Maqola yuborish', path: '/submit-article' },
+    { name: t('profile.submit_article'), path: '/submit-article' },
   ];
 
   const [showLoginModal, setShowLoginModal] = React.useState(false);
@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                 <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-dark-card border border-navy/5 dark:border-gold/10 shadow-2xl rounded-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 py-2">
                   <Link to="/profile" className="w-full px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-navy/60 dark:text-gold/60 hover:text-gold dark:hover:text-white hover:bg-navy/5 dark:hover:bg-gold/5 flex items-center space-x-3">
                     <User size={14} />
-                    <span>Profil</span>
+                    <span>{t('profile.title')}</span>
                   </Link>
                   <button onClick={onLogout} className="w-full px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-navy/60 dark:text-gold/60 hover:text-gold dark:hover:text-white hover:bg-navy/5 dark:hover:bg-gold/5 flex items-center space-x-3">
                     <LogOut size={14} />
@@ -309,22 +309,22 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
               >
                 {user ? (
                   <>
-                    <Link
-                      to="/profile"
-                      className="block px-6 py-3 text-[11px] font-bold uppercase tracking-[0.2em] text-navy dark:text-white hover:bg-navy/5 dark:hover:bg-gold/5 rounded-full transition-all"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Profil
-                    </Link>
-                    <button
-                      onClick={() => {
-                        onLogout();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full text-left px-6 py-3 text-[11px] font-bold uppercase tracking-[0.2em] text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full transition-all"
-                    >
-                      Chiqish
-                    </button>
+                      <Link
+                        to="/profile"
+                        className="block px-6 py-3 text-[11px] font-bold uppercase tracking-[0.2em] text-navy dark:text-white hover:bg-navy/5 dark:hover:bg-gold/5 rounded-full transition-all"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {t('profile.title')}
+                      </Link>
+                      <button
+                        onClick={() => {
+                          onLogout();
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full text-left px-6 py-3 text-[11px] font-bold uppercase tracking-[0.2em] text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full transition-all"
+                      >
+                        {t('auth.logout')}
+                      </button>
                   </>
                 ) : (
                   <button
@@ -334,7 +334,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                     }}
                     className="w-full text-left px-6 py-3 text-[11px] font-bold uppercase tracking-[0.2em] text-gold hover:bg-gold/5 rounded-full transition-all"
                   >
-                    Kirish
+                    {t('auth.login')}
                   </button>
                 )}
               </motion.div>

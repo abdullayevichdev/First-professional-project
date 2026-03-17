@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import './i18n';
+import { Toaster } from 'react-hot-toast';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { SwipeNavigation } from './components/SwipeNavigation';
@@ -15,6 +16,8 @@ import { Glossary } from './pages/Glossary';
 import { Admin } from './pages/Admin';
 import { Profile } from './pages/Profile';
 import { SubmitArticle } from './pages/SubmitArticle';
+import { Privacy } from './pages/Privacy';
+import { Terms } from './pages/Terms';
 import { User } from './types';
 
 export const SwipeContext = React.createContext<'left' | 'right' | null>(null);
@@ -36,6 +39,8 @@ function AnimatedRoutes({ user, swipeDirection }: { user: User | null, swipeDire
           <Route path="/admin" element={<Admin />} />
           <Route path="/profile" element={<Profile user={user} />} />
           <Route path="/submit-article" element={<SubmitArticle user={user} />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AnimatePresence>
@@ -111,6 +116,7 @@ export default function App() {
 
   return (
     <Router>
+      <Toaster position="top-right" />
       <SwipeNavigation setSwipeDirection={setSwipeDirection} />
       <div className="min-h-screen flex flex-col bg-white transition-colors duration-500">
         <Header user={user} onLogout={handleLogout} onLoginSuccess={fetchUser} />

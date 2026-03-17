@@ -34,22 +34,33 @@ dotenv.config();
 const app = express();
 app.set("trust proxy", 1);
 const PORT = 3000;
-const JWT_SECRET = process.env.VITE_JWT_SECRET || "tahqiq-super-secret-key-2026";
+const JWT_SECRET = process.env.VITE_JWT_SECRET;
+if (!JWT_SECRET) {
+  console.warn("VITE_JWT_SECRET is not set. Authentication will fail.");
+}
 
 // Firebase setup
+import firebaseAppletConfig from "../firebase-applet-config.json";
+
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY || "AIzaSyCRI_uFBdXc20slLGWbm0K53GBT6mfgODE",
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "tahqiq-87f79.firebaseapp.com",
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || "tahqiq-87f79",
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "415984827866",
-  appId: process.env.VITE_FIREBASE_APP_ID || "1:415984827866:web:08e196f183a0541d4894e3",
-  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || "G-QX1GSZZ5WS"
+  apiKey: process.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId,
+  appId: process.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId,
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || firebaseAppletConfig.measurementId
 };
+
+const firestoreDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || firebaseAppletConfig.firestoreDatabaseId;
+
+if (!firebaseConfig.apiKey) {
+  console.warn("Firebase configuration is missing. Database operations will fail.");
+}
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = initializeFirestore(firebaseApp, {
   experimentalForceLongPolling: true,
-});
+}, firestoreDatabaseId);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
@@ -331,7 +342,7 @@ app.get("/api/user/stream", authenticateToken, (req: any, res) => {
   });
 });
 
-app.post("/api/notifications/:id/dismiss", authenticateToken, async (req: any, res) => {
+app.post("/api/notifications/:id/dismiss", authenticateToken, async (req: any, res: any) => {
   try {
     const notifRef = doc(db, "notifications", req.params.id);
     const notifSnap = await getDoc(notifRef);
@@ -347,7 +358,7 @@ app.post("/api/notifications/:id/dismiss", authenticateToken, async (req: any, r
   }
 });
 
-app.get("/api/user/saved-articles", authenticateToken, async (req: any, res) => {
+app.get("/api/user/saved-articles", authenticateToken, async (req: any, res: any) => {
   const userId = req.userId;
   
   try {
@@ -811,14 +822,14 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      root: process.cwd(),
+      root: path.resolve(__dirname, '..'),
       server: { middlewareMode: true, hmr: false, watch: null },
       appType: "custom",
     });
     app.use(vite.middlewares);
     app.get("*", async (req, res, next) => {
       try {
-        const template = await vite.transformIndexHtml(req.url, fs.readFileSync(path.resolve(__dirname, 'index.html'), 'utf-8'));
+        const template = await vite.transformIndexHtml(req.url, fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf-8'));
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e) {
         next(e);
@@ -838,7 +849,6 @@ async function startServer() {
     }
   }
   
-  // Only listen if not in a serverless environment like Vercel
   if (process.env.VERCEL !== "1") {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on http://localhost:${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
