@@ -14,7 +14,6 @@ export interface User {
   lastName: string;
   birthDate: string;
   phone: string;
-  picture: string;
   notifications?: Notification[];
   saved_articles?: string[];
   role?: 'admin' | 'user';

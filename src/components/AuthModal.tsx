@@ -27,8 +27,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     phone: '',
     username: '',
     password: '',
-    confirmPassword: '',
-    picture: ''
+    confirmPassword: ''
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,21 +76,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
     setFormData(prev => ({ ...prev, [name]: newValue }));
     if (error) setError(null);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError('Rasm hajmi 2MB dan oshmasligi kerak');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, picture: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -217,34 +201,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {mode === 'register' && (
-                    <>
-                      <div className="flex flex-col items-center mb-6">
-                        <div 
-                          onClick={() => fileInputRef.current?.click()}
-                          className="relative w-24 h-24 rounded-full bg-gray-50 dark:bg-white/5 border-2 border-dashed border-gray-200 dark:border-white/10 flex items-center justify-center cursor-pointer group overflow-hidden transition-all hover:border-gold shadow-inner"
-                        >
-                          {formData.picture ? (
-                            <img src={formData.picture} alt="Profile" className="w-full h-full object-cover" />
-                          ) : (
-                            <Camera size={24} className="text-gray-300 group-hover:text-gold transition-colors" />
-                          )}
-                          <div className="absolute inset-0 bg-navy/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                            <span className="text-[9px] font-bold text-white uppercase tracking-widest">Yuklash</span>
-                          </div>
-                        </div>
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          onChange={handleFileChange} 
-                          accept="image/*" 
-                          className="hidden" 
-                        />
-                        <p className="mt-2 text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Profil Rasmi</p>
-                      </div>
-                    </>
-                  )}
-
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Login</label>
                     <div className="relative">

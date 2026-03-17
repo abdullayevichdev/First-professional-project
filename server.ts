@@ -7,7 +7,6 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import multer from "multer";
 import { initializeApp } from "firebase/app";
 import { 
   getFirestore, 
@@ -43,7 +42,6 @@ const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY || "AIzaSyCRI_uFBdXc20slLGWbm0K53GBT6mfgODE",
   authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "tahqiq-87f79.firebaseapp.com",
   projectId: process.env.VITE_FIREBASE_PROJECT_ID || "tahqiq-87f79",
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || "tahqiq-87f79.firebasestorage.app",
   messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "415984827866",
   appId: process.env.VITE_FIREBASE_APP_ID || "1:415984827866:web:08e196f183a0541d4894e3",
   measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || "G-QX1GSZZ5WS"
@@ -138,11 +136,9 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(400).json({ error: "Login band, boshqa login tanlang" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 8);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUserRef = doc(collection(db, "users"));
     const userId = newUserRef.id;
-
-    console.log("Creating new user with ID:", userId);
 
     const userData = {
       id: userId,
@@ -160,19 +156,15 @@ app.post("/api/auth/register", async (req, res) => {
       created_at: new Date().toISOString()
     };
 
-    console.log("Attempting to save user data to Firestore...");
     await setDoc(newUserRef, userData);
-    console.log("User document created successfully");
 
-    // Log activity in background without waiting
-    logActivity(userId, username, userData.name, "register", undefined, "Ro'yxatdan o'tdi").catch(console.error);
+    await logActivity(userId, username, userData.name, "register", undefined, "Ro'yxatdan o'tdi");
 
     const token = generateToken(userId);
     res.cookie("auth_token", token, {
       httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
-    console.log("Registration successful for user:", username);
     res.json({ success: true, user: { id: userId, username, name: userData.name, picture: userData.picture } });
   } catch (error: any) {
     console.error("Registration error details:", error);
@@ -182,7 +174,6 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body;
-  console.log("Login attempt for user:", username);
 
   try {
     const usersRef = collection(db, "users");
@@ -190,7 +181,6 @@ app.post("/api/auth/login", async (req, res) => {
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      console.log("Login failed: User not found");
       return res.status(401).json({ error: "Login yoki parol noto'g'ri" });
     }
 
@@ -198,7 +188,6 @@ app.post("/api/auth/login", async (req, res) => {
     const userData = userDoc.data();
 
     if (userData.status === "suspended") {
-      console.log("Login failed: Account suspended");
       return res.status(403).json({ error: "Your account has been suspended" });
     }
 
@@ -208,12 +197,11 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Login yoki parol noto'g'ri" });
     }
 
-    // Update last login and log activity in background
-    updateDoc(doc(db, "users", userDoc.id), {
+    await updateDoc(doc(db, "users", userDoc.id), {
       last_login: new Date().toISOString()
-    }).catch(console.error);
+    });
 
-    logActivity(userDoc.id, userData.username || userData.email, userData.name, "login", undefined, "Tizimga kirdi").catch(console.error);
+    await logActivity(userDoc.id, userData.username || userData.email, userData.name, "login", undefined, "Tizimga kirdi");
 
     const token = generateToken(userDoc.id);
     res.cookie("auth_token", token, {
@@ -374,26 +362,6 @@ app.get("/api/user/saved-articles", authenticateToken, async (req: any, res) => 
     }
   } catch (e) {
     res.status(500).json({ error: "Failed to fetch saved articles" });
-  }
-});
-
-const upload = multer({ storage: multer.memoryStorage() });
-
-app.post("/api/user/update-picture", authenticateToken, upload.single('picture'), async (req: any, res: any) => {
-  const userId = req.userId;
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-
-  try {
-    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-
-    await updateDoc(doc(db, "users", userId), {
-      picture: base64Image
-    });
-
-    res.json({ success: true, picture: base64Image });
-  } catch (e: any) {
-    console.error("Failed to update picture. Full error:", JSON.stringify(e, Object.getOwnPropertyNames(e)));
-    res.status(500).json({ error: "Failed to update picture", details: e.message });
   }
 });
 
@@ -669,19 +637,25 @@ app.get("/api/search", async (req, res) => {
   try {
     const snapshot = await getDocs(collection(db, "content"));
     const items = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
-    const query = q.toLowerCase();
     
-    const results = items.filter(i => 
-      i.title_uz?.toLowerCase().includes(query) ||
-      i.title_en?.toLowerCase().includes(query) ||
-      i.title_ru?.toLowerCase().includes(query) ||
-      i.excerpt_uz?.toLowerCase().includes(query) ||
-      i.excerpt_en?.toLowerCase().includes(query) ||
-      i.excerpt_ru?.toLowerCase().includes(query) ||
-      i.content_uz?.toLowerCase().includes(query) ||
-      i.content_en?.toLowerCase().includes(query) ||
-      i.content_ru?.toLowerCase().includes(query)
-    ).map(i => ({
+    const normalize = (str: string | null | undefined) => 
+      (str || "").replace(/['ʻ’`]/g, "'").toLowerCase();
+    
+    const query = normalize(q);
+    
+    const results = items.filter(i => {
+      return (
+        normalize(i.title_uz).includes(query) ||
+        normalize(i.title_en).includes(query) ||
+        normalize(i.title_ru).includes(query) ||
+        normalize(i.excerpt_uz).includes(query) ||
+        normalize(i.excerpt_en).includes(query) ||
+        normalize(i.excerpt_ru).includes(query) ||
+        normalize(i.body_uz).includes(query) ||
+        normalize(i.body_en).includes(query) ||
+        normalize(i.body_ru).includes(query)
+      );
+    }).map(i => ({
       ...i,
       created_at: i.created_at?.toDate?.()?.toISOString() || null
     }));
@@ -706,6 +680,10 @@ app.get("/api/content/:id", async (req, res) => {
   }
 });
 
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -723,18 +701,27 @@ async function startServer() {
       }
     });
   } else {
-    app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
+    const distPath = path.join(__dirname, "dist");
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    } else {
+      app.get("*", (req, res) => {
+        res.status(404).send("Production build not found. Run 'npm run build' first.");
+      });
+    }
+  }
+  
+  // Only listen if not in a serverless environment like Vercel
+  if (process.env.VERCEL !== "1") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
   }
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
 }
 
-if (process.env.NODE_ENV !== "production") {
-  startServer();
-}
+startServer();
 
 export default app;

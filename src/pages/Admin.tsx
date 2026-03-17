@@ -508,13 +508,9 @@ export const Admin: React.FC = () => {
                     <tr key={user.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
-                          {user.picture ? (
-                            <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
-                              {user.name?.charAt(0) || 'U'}
-                            </div>
-                          )}
+                          <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
+                            {user.name?.charAt(0) || 'U'}
+                          </div>
                           <span className="font-medium text-sm text-navy dark:text-white">{user.name}</span>
                         </div>
                       </td>
@@ -618,13 +614,9 @@ export const Admin: React.FC = () => {
                     <tr key={user.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
-                          {user.picture ? (
-                            <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
-                              {user.name?.charAt(0) || 'U'}
-                            </div>
-                          )}
+                          <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
+                            {user.name?.charAt(0) || 'U'}
+                          </div>
                           <span className="font-medium text-sm text-navy dark:text-white">{user.name}</span>
                         </div>
                       </td>
@@ -704,13 +696,9 @@ export const Admin: React.FC = () => {
                       <tr key={user.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-3">
-                            {user.picture ? (
-                              <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
-                                {user.name?.charAt(0) || 'U'}
-                              </div>
-                            )}
+                            <div className="w-8 h-8 rounded-full bg-navy/10 dark:bg-gold/10 flex items-center justify-center text-navy dark:text-gold font-bold">
+                              {user.name?.charAt(0) || 'U'}
+                            </div>
                             <span className="font-medium text-sm text-navy dark:text-white">{user.name}</span>
                           </div>
                         </td>

@@ -22,25 +22,36 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
   const [isSearching, setIsSearching] = React.useState(false);
   const navigate = useNavigate();
 
+  // Debounced search
+  React.useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.trim().length >= 2) {
+        setIsSearching(true);
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setSearchResults(data);
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
-    setIsSearching(true);
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSearching(false);
-    }
   };
 
   const navItems = [
@@ -114,7 +125,9 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
               </div>
               <div className="relative group">
                 <Link to="/profile">
-                  <img src={user.picture || 'https://picsum.photos/seed/user/100/100'} alt={user.name} className="w-10 h-10 rounded-full border-2 border-gold/20 shadow-lg group-hover:border-gold transition-all duration-300 cursor-pointer" />
+                  <div className="w-10 h-10 rounded-full border-2 border-gold/20 shadow-lg group-hover:border-gold transition-all duration-300 cursor-pointer flex items-center justify-center bg-gold text-white font-bold">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
                 </Link>
                 <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-dark-card border border-navy/5 dark:border-gold/10 shadow-2xl rounded-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 py-2">
                   <Link to="/profile" className="w-full px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-navy/60 dark:text-gold/60 hover:text-gold dark:hover:text-white hover:bg-navy/5 dark:hover:bg-gold/5 flex items-center space-x-3">
@@ -151,6 +164,18 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
             className="absolute inset-x-0 top-full bg-white dark:bg-dark-card border-b border-navy/10 dark:border-gold/10 shadow-2xl z-40"
           >
             <div className="news-container py-12">
+              <div className="flex justify-end mb-4">
+                <button 
+                  onClick={() => {
+                    setIsSearchOpen(false);
+                    setSearchResults([]);
+                    setSearchQuery('');
+                  }}
+                  className="text-navy dark:text-gold hover:text-gold dark:hover:text-white transition-colors"
+                >
+                  <X size={32} />
+                </button>
+              </div>
               <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto">
                 <input
                   autoFocus

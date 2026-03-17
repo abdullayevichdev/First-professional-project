@@ -16,31 +16,6 @@ export const Profile: React.FC<ProfileProps> = ({ user }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [savedArticles, setSavedArticles] = useState<ContentItem[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('picture', file);
-
-    try {
-      const res = await fetch('/api/user/update-picture', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-      if (res.ok) {
-        window.location.reload(); // Refresh to update picture
-      } else {
-        alert('Rasmni yuklashda xatolik yuz berdi.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Server xatosi.');
-    }
-  };
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
@@ -118,22 +93,9 @@ export const Profile: React.FC<ProfileProps> = ({ user }) => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-gold/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             
             <div className="relative shrink-0 z-10">
-              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white dark:border-[#141414] shadow-xl bg-gray-50 dark:bg-white/5">
-                <img src={user.picture || 'https://picsum.photos/seed/user/200/200'} alt={user.name} className="w-full h-full object-cover" />
+              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white dark:border-[#141414] shadow-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-4xl font-serif font-bold text-gold">
+                {user.name.charAt(0).toUpperCase()}
               </div>
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-2 right-2 p-3 bg-gold text-white rounded-full shadow-lg hover:scale-105 transition-transform"
-              >
-                <Edit3 size={16} />
-              </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
-                accept="image/*" 
-              />
             </div>
             
             <div className="flex-1 text-center md:text-left min-w-0 z-10 pt-2">
