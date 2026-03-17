@@ -93,12 +93,13 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
     <PageWrapper className="pb-24 transition-colors duration-500">
       {/* Hero Section */}
       <section className="bg-white dark:bg-dark-card border-b border-navy/5 dark:border-gold/5 transition-colors duration-500">
-        <div className="news-container py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="news-container py-6 sm:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12">
             {/* Main Spotlight */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
               className="lg:col-span-8 group"
             >
               {featured && (
@@ -111,12 +112,12 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent opacity-60 dark:opacity-80"></div>
-                    <div className="absolute bottom-0 left-0 p-10 w-full">
-                      <span className="inline-block bg-gold text-white dark:text-navy px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] mb-4 shadow-lg">{t('common.featured_analysis')}</span>
-                      <h2 className="text-4xl md:text-5xl font-serif font-bold text-white leading-tight mb-4 group-hover:text-gold transition-colors duration-500">
+                    <div className="absolute bottom-0 left-0 p-6 sm:p-10 w-full">
+                      <span className="inline-block bg-gold text-white dark:text-navy px-3 py-1 sm:px-4 sm:py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mb-3 sm:mb-4 shadow-lg">{t('common.featured_analysis')}</span>
+                      <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-white leading-tight mb-3 sm:mb-4 group-hover:text-gold transition-colors duration-500">
                         {getTitle(featured)}
                       </h2>
-                      <div className="flex items-center space-x-4 text-white/60 text-[10px] font-bold uppercase tracking-widest">
+                      <div className="flex items-center space-x-3 sm:space-x-4 text-white/60 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">
                         <span>{featured.author}</span>
                         <span className="w-1 h-1 bg-gold rounded-full"></span>
                         <span>{new Date(featured.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}</span>
@@ -131,23 +132,28 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
             </motion.div>
 
             {/* Side Stories */}
-            <div className="lg:col-span-4 space-y-12">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="lg:col-span-4 space-y-8 sm:space-y-12"
+            >
               <h3 className="section-title">{t('common.latest_updates')}</h3>
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8">
                 {latestAnalysis.map((item, idx) => (
                   <motion.div 
                     key={item.id}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
+                    transition={{ delay: 0.3 + (idx * 0.1) }}
                   >
-                    <Link to={`/article/${item.id}`} className="group flex space-x-6 items-start">
-                      <div className="w-20 h-20 flex-shrink-0 overflow-hidden article-card shadow-md">
+                    <Link to={`/article/${item.id}`} className="group flex space-x-4 sm:space-x-6 items-start">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 overflow-hidden article-card shadow-md">
                         <img src={`https://picsum.photos/seed/${item.id}/400/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
                       </div>
                       <div className="flex-grow">
-                        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-1 block">{item.category}</span>
-                        <h4 className="text-sm font-serif font-bold text-navy dark:text-white group-hover:text-gold transition-colors leading-snug">
+                        <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-1 block">{item.category}</span>
+                        <h4 className="text-xs sm:text-sm font-serif font-bold text-navy dark:text-white group-hover:text-gold transition-colors leading-snug line-clamp-2">
                           {getTitle(item)}
                         </h4>
                       </div>
@@ -156,59 +162,59 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                 ))}
               </div>
               
-              <div className="sidebar-card bg-white dark:bg-gold p-10 text-navy dark:text-navy shadow-2xl relative overflow-hidden group border border-navy/10 dark:border-transparent">
+              <div className="sidebar-card bg-white dark:bg-gold p-6 sm:p-10 text-navy dark:text-navy shadow-2xl relative overflow-hidden group border border-navy/10 dark:border-transparent">
                 <div className="absolute -right-10 -top-10 w-32 h-32 bg-gray-50 dark:bg-navy/5 rounded-full group-hover:scale-150 transition-transform duration-1000"></div>
-                <h4 className="text-xl font-serif font-bold mb-4 relative z-10">{t('common.weekly_brief')}</h4>
-                <p className="text-xs opacity-80 mb-8 leading-relaxed font-light relative z-10">{t('common.weekly_brief_desc')}</p>
-                <form onSubmit={handleSubscribe} className="flex flex-col space-y-4 relative z-10">
+                <h4 className="text-lg sm:text-xl font-serif font-bold mb-4 relative z-10">{t('common.weekly_brief')}</h4>
+                <p className="text-[10px] sm:text-xs opacity-80 mb-6 sm:mb-8 leading-relaxed font-light relative z-10">{t('common.weekly_brief_desc')}</p>
+                <form onSubmit={handleSubscribe} className="flex flex-col space-y-3 sm:space-y-4 relative z-10">
                   <input 
                     type="email" 
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={t('common.email_placeholder')} 
-                    className="bg-white dark:bg-navy/10 border border-gray-200 dark:border-navy/20 px-6 py-4 text-xs focus:outline-none focus:border-navy dark:focus:border-navy transition-colors placeholder:text-gray-400 dark:placeholder:text-navy/40 text-navy dark:text-navy" 
+                    className="bg-white dark:bg-navy/10 border border-gray-200 dark:border-navy/20 px-4 py-3 sm:px-6 sm:py-4 text-[10px] sm:text-xs focus:outline-none focus:border-navy dark:focus:border-navy transition-colors placeholder:text-gray-400 dark:placeholder:text-navy/40 text-navy dark:text-navy" 
                   />
-                  <button type="submit" className="bg-navy dark:bg-navy text-white dark:text-white py-4 text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-gold dark:hover:bg-navy/80 transition-all shadow-xl active:scale-95">
+                  <button type="submit" className="bg-navy dark:bg-navy text-white dark:text-white py-3 sm:py-4 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-gold dark:hover:bg-navy/80 transition-all shadow-xl active:scale-95">
                     {subscribed ? t('common.subscribed') : t('common.subscribe')}
                   </button>
                 </form>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Main Content Sections */}
       {user ? (
-        <main className="news-container py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+        <main className="news-container py-12 sm:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-16">
           {/* Left Column: Uzbekistan & Global */}
-          <div className="lg:col-span-8 space-y-32">
+          <div className="lg:col-span-8 space-y-16 sm:space-y-32">
             {/* Uzbekistan Section */}
             <section>
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center justify-between mb-8 sm:mb-12">
                 <h2 className="section-title flex-grow">{t('nav.uzb_politics')}</h2>
-                <Link to="/category/uzbekistan" className="btn-secondary py-2 px-6 text-[9px] ml-8">{t('common.view_archive')}</Link>
+                <Link to="/category/uzbekistan" className="btn-secondary py-2 px-4 sm:px-6 text-[8px] sm:text-[9px] ml-4 sm:ml-8">{t('common.view_archive')}</Link>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-12">
                 {uzbPolitics.map((item, idx) => (
                   <motion.article 
                     key={item.id}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
+                    viewport={{ once: true, margin: "-100px" }}
                     transition={{ delay: idx * 0.1 }}
                     className="group"
                   >
                     <Link to={`/article/${item.id}`}>
-                      <div className="aspect-video overflow-hidden mb-6 article-card shadow-lg">
+                      <div className="aspect-video overflow-hidden mb-4 sm:mb-6 article-card shadow-lg">
                         <img src={`https://picsum.photos/seed/${item.id}/600/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
                       </div>
-                      <h3 className="text-xl font-serif font-bold text-navy dark:text-white mb-4 group-hover:text-gold transition-colors leading-tight">
+                      <h3 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white mb-3 sm:mb-4 group-hover:text-gold transition-colors leading-tight">
                         {getTitle(item)}
                       </h3>
-                      <p className="text-sm text-navy/60 dark:text-gray-400 leading-relaxed line-clamp-3 font-light">
+                      <p className="text-xs sm:text-sm text-navy/60 dark:text-gray-400 leading-relaxed line-clamp-3 font-light">
                         {getExcerpt(item)}
                       </p>
                     </Link>
@@ -218,16 +224,16 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
             </section>
 
             {/* Featured Video Section */}
-            <section className="bg-white dark:bg-dark-card p-12 article-card border border-navy/10 dark:border-gold/20 shadow-2xl text-navy dark:text-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <section className="bg-white dark:bg-dark-card p-6 sm:p-12 article-card border border-navy/10 dark:border-gold/20 shadow-2xl text-navy dark:text-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
                 <div>
-                  <span className="text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-6 block">{t('common.multimedia')}</span>
-                  <h2 className="text-3xl font-serif font-bold mb-6">{t('common.decoding_speeches')}</h2>
-                  <p className="text-navy/60 dark:text-white/60 text-sm font-light leading-relaxed mb-10">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-4 sm:mb-6 block">{t('common.multimedia')}</span>
+                  <h2 className="text-2xl sm:text-3xl font-serif font-bold mb-4 sm:mb-6">{t('common.decoding_speeches')}</h2>
+                  <p className="text-navy/60 dark:text-white/60 text-xs sm:text-sm font-light leading-relaxed mb-6 sm:mb-10">
                     {t('common.decoding_desc')}
                   </p>
-                  <a href="https://youtube.com/@TAHQIQ_OFFICIAL" target="_blank" rel="noreferrer" className="btn-premium inline-flex">
-                    <Youtube size={18} />
+                  <a href="https://youtube.com/@TAHQIQ_OFFICIAL" target="_blank" rel="noreferrer" className="btn-premium inline-flex py-3 px-6 sm:py-4 sm:px-8">
+                    <Youtube size={16} className="sm:w-[18px] sm:h-[18px]" />
                     <span>{t('common.watch_analysis')}</span>
                   </a>
                 </div>
@@ -244,29 +250,29 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
 
             {/* Global Section */}
             <section>
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center justify-between mb-8 sm:mb-12">
                 <h2 className="section-title flex-grow">{t('nav.global_politics')}</h2>
-                <Link to="/category/global" className="btn-secondary py-2 px-6 text-[9px] ml-8">{t('common.view_archive')}</Link>
+                <Link to="/category/global" className="btn-secondary py-2 px-4 sm:px-6 text-[8px] sm:text-[9px] ml-4 sm:ml-8">{t('common.view_archive')}</Link>
               </div>
-              <div className="space-y-12">
+              <div className="space-y-8 sm:space-y-12">
                 {globalPolitics.map((item, idx) => (
                   <motion.article 
                     key={item.id}
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
+                    viewport={{ once: true, margin: "-100px" }}
                     className="group"
                   >
-                    <Link to={`/article/${item.id}`} className="grid grid-cols-1 md:grid-cols-12 gap-10 items-center">
+                    <Link to={`/article/${item.id}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-10 items-center">
                       <div className="md:col-span-5 aspect-video overflow-hidden article-card shadow-lg">
                         <img src={`https://picsum.photos/seed/${item.id}/600/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
                       </div>
                       <div className="md:col-span-7">
-                        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-3 block">{t('common.international_relations')}</span>
-                        <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-4 group-hover:text-gold transition-colors leading-tight">
+                        <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-2 sm:mb-3 block">{t('common.international_relations')}</span>
+                        <h3 className="text-xl sm:text-2xl font-serif font-bold text-navy dark:text-white mb-3 sm:mb-4 group-hover:text-gold transition-colors leading-tight">
                           {getTitle(item)}
                         </h3>
-                        <p className="text-sm text-navy/60 dark:text-gray-400 leading-relaxed line-clamp-2 font-light">
+                        <p className="text-xs sm:text-sm text-navy/60 dark:text-gray-400 leading-relaxed line-clamp-2 font-light">
                           {getExcerpt(item)}
                         </p>
                       </div>
@@ -278,25 +284,25 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
 
             {/* Historical Context Section */}
             <section>
-              <div className="flex items-center justify-between mb-12">
+              <div className="flex items-center justify-between mb-8 sm:mb-12">
                 <h2 className="section-title flex-grow">{t('common.historical_context')}</h2>
-                <Link to="/category/historical" className="btn-secondary py-2 px-6 text-[9px] ml-8">{t('common.view_archive')}</Link>
+                <Link to="/category/historical" className="btn-secondary py-2 px-4 sm:px-6 text-[8px] sm:text-[9px] ml-4 sm:ml-8">{t('common.view_archive')}</Link>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-8">
                 {historicalAnalysis.map((item, idx) => (
                   <motion.article 
                     key={item.id}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
+                    viewport={{ once: true, margin: "-50px" }}
                     transition={{ delay: idx * 0.1 }}
                     className="group"
                   >
                     <Link to={`/article/${item.id}`}>
-                      <div className="aspect-square overflow-hidden mb-6 article-card shadow-md">
+                      <div className="aspect-square overflow-hidden mb-3 sm:mb-6 article-card shadow-md">
                         <img src={`https://picsum.photos/seed/${item.id}/400/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" referrerPolicy="no-referrer" />
                       </div>
-                      <h3 className="text-lg font-serif font-bold text-navy dark:text-white mb-2 group-hover:text-gold transition-colors leading-tight">
+                      <h3 className="text-sm sm:text-lg font-serif font-bold text-navy dark:text-white mb-2 group-hover:text-gold transition-colors leading-tight line-clamp-2">
                         {getTitle(item)}
                       </h3>
                     </Link>
@@ -306,35 +312,50 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
             </section>
 
             {/* Strategic Insights Section - NEW */}
-            <section className="border-t border-navy/10 dark:border-gold/10 pt-24">
-              <div className="flex items-center justify-between mb-12">
+            <section className="border-t border-navy/10 dark:border-gold/10 pt-12 sm:pt-24">
+              <div className="flex items-center justify-between mb-8 sm:mb-12">
                 <h2 className="section-title flex-grow">{t('common.strategic_insights')}</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-                <div className="space-y-8">
-                  <div className="p-8 bg-white dark:bg-dark-card border-l-4 border-gold shadow-lg article-card">
-                    <h4 className="text-xl font-serif font-bold mb-4">{t('common.future_integration')}</h4>
-                    <p className="text-sm text-navy/60 dark:text-gray-400 leading-relaxed font-light">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-16">
+                <div className="space-y-6 sm:space-y-8">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    className="p-6 sm:p-8 bg-white dark:bg-dark-card border-l-4 border-gold shadow-lg article-card"
+                  >
+                    <h4 className="text-lg sm:text-xl font-serif font-bold mb-3 sm:mb-4">{t('common.future_integration')}</h4>
+                    <p className="text-xs sm:text-sm text-navy/60 dark:text-gray-400 leading-relaxed font-light">
                       {t('common.future_integration_desc')}
                     </p>
-                    <Link to="/article/art-3" className="text-gold text-[10px] font-bold uppercase tracking-widest mt-6 inline-block hover:underline">{t('common.read_more')}</Link>
-                  </div>
-                  <div className="p-8 bg-white dark:bg-dark-card border-l-4 border-navy dark:border-white shadow-lg article-card">
-                    <h4 className="text-xl font-serif font-bold mb-4">{t('common.digital_sovereignty')}</h4>
-                    <p className="text-sm text-navy/60 dark:text-gray-400 leading-relaxed font-light">
+                    <Link to="/article/art-3" className="text-gold text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 sm:mt-6 inline-block hover:underline">{t('common.read_more')}</Link>
+                  </motion.div>
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true, delay: 0.1 }}
+                    className="p-6 sm:p-8 bg-white dark:bg-dark-card border-l-4 border-navy dark:border-white shadow-lg article-card"
+                  >
+                    <h4 className="text-lg sm:text-xl font-serif font-bold mb-3 sm:mb-4">{t('common.digital_sovereignty')}</h4>
+                    <p className="text-xs sm:text-sm text-navy/60 dark:text-gray-400 leading-relaxed font-light">
                       {t('common.digital_sovereignty_desc')}
                     </p>
-                    <Link to="/article/art-5" className="text-gold text-[10px] font-bold uppercase tracking-widest mt-6 inline-block hover:underline">{t('common.read_more')}</Link>
-                  </div>
+                    <Link to="/article/art-5" className="text-gold text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 sm:mt-6 inline-block hover:underline">{t('common.read_more')}</Link>
+                  </motion.div>
                 </div>
-                <div className="bg-white dark:bg-dark-card p-10 article-card flex flex-col justify-center text-navy dark:text-white border border-navy/10 dark:border-gold/20 shadow-lg">
-                  <MessageSquare size={32} className="text-gold mb-6" />
-                  <h3 className="text-2xl font-serif font-bold mb-4">{t('common.join_discussion')}</h3>
-                  <p className="text-navy/60 dark:text-white/60 text-sm font-light leading-relaxed mb-8">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="bg-white dark:bg-dark-card p-8 sm:p-10 article-card flex flex-col justify-center text-navy dark:text-white border border-navy/10 dark:border-gold/20 shadow-lg"
+                >
+                  <MessageSquare size={28} className="text-gold mb-4 sm:mb-6 sm:w-[32px] sm:h-[32px]" />
+                  <h3 className="text-xl sm:text-2xl font-serif font-bold mb-3 sm:mb-4">{t('common.join_discussion')}</h3>
+                  <p className="text-navy/60 dark:text-white/60 text-xs sm:text-sm font-light leading-relaxed mb-6 sm:mb-8">
                     {t('common.community_desc')}
                   </p>
                   <Link to="/contact" className="btn-premium w-fit inline-block text-center">{t('common.become_member')}</Link>
-                </div>
+                </motion.div>
               </div>
             </section>
           </div>

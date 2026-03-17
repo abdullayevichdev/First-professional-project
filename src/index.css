@@ -42,12 +42,12 @@
 }
 
 .section-title {
-  @apply font-serif text-2xl font-bold text-navy dark:text-white uppercase tracking-widest border-b border-navy/10 dark:border-gold/10 pb-4 mb-8 flex items-center justify-between transition-all duration-500;
+  @apply font-serif text-xl sm:text-2xl font-bold text-navy dark:text-white uppercase tracking-widest border-b border-navy/10 dark:border-gold/10 pb-3 sm:pb-4 mb-6 sm:mb-8 flex items-center justify-between transition-all duration-500;
 }
 
 .section-title::after {
   content: "";
-  @apply h-[1px] flex-grow ml-6 bg-navy/10 dark:bg-gold/10;
+  @apply h-[1px] flex-grow ml-4 sm:ml-6 bg-navy/10 dark:bg-gold/10;
 }
 
 .article-card {
@@ -55,11 +55,11 @@
 }
 
 .btn-premium {
-  @apply bg-navy dark:bg-gold text-white dark:text-navy px-8 py-4 text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-gold dark:hover:bg-white hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-500 inline-flex items-center justify-center space-x-3 rounded-full shadow-xl hover:shadow-gold/40 border border-transparent;
+  @apply bg-navy dark:bg-gold text-white dark:text-navy px-6 py-3 sm:px-8 sm:py-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] hover:bg-gold dark:hover:bg-white hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-500 inline-flex items-center justify-center space-x-2 sm:space-x-3 rounded-full shadow-xl hover:shadow-gold/40 border border-transparent whitespace-nowrap;
 }
 
 .btn-secondary {
-  @apply bg-transparent border border-navy/20 dark:border-gold/30 text-navy dark:text-gold px-8 py-4 text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-navy dark:hover:bg-gold hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-500 inline-flex items-center justify-center space-x-3 rounded-full;
+  @apply bg-transparent border border-navy/20 dark:border-gold/30 text-navy dark:text-gold px-6 py-3 sm:px-8 sm:py-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] hover:bg-navy dark:hover:bg-gold hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-500 inline-flex items-center justify-center space-x-2 sm:space-x-3 rounded-full whitespace-nowrap;
 }
 
 .sidebar-card {
@@ -67,7 +67,7 @@
 }
 
 .nav-link {
-  @apply text-[11px] font-bold uppercase tracking-[0.2em] text-navy/60 dark:text-gray-400 hover:text-navy dark:hover:text-gold transition-all border-b-2 border-transparent hover:border-gold pb-1;
+  @apply text-[10.5px] font-bold uppercase tracking-[0.1em] text-navy/60 dark:text-gray-400 hover:text-navy dark:hover:text-gold transition-all border-b-2 border-transparent hover:border-gold pb-1 whitespace-nowrap;
 }
 
 .vertical-text {
@@ -82,6 +82,14 @@
 }
 
 /* Custom Scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }

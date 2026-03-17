@@ -14,6 +14,7 @@ import { Contact } from './pages/Contact';
 import { Glossary } from './pages/Glossary';
 import { Admin } from './pages/Admin';
 import { Profile } from './pages/Profile';
+import { SubmitArticle } from './pages/SubmitArticle';
 import { User } from './types';
 
 export const SwipeContext = React.createContext<'left' | 'right' | null>(null);
@@ -34,6 +35,7 @@ function AnimatedRoutes({ user, swipeDirection }: { user: User | null, swipeDire
           <Route path="/glossary" element={<Glossary />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/profile" element={<Profile user={user} />} />
+          <Route path="/submit-article" element={<SubmitArticle user={user} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AnimatePresence>

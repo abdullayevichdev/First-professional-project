@@ -317,8 +317,17 @@ app.get("/api/user/stream", authenticateToken, (req: any, res) => {
     sendEvent("notifications", notifications);
   }, (err) => console.error("SSE User Notifications error:", err));
 
+  // Listen for submissions
+  const subQ = query(collection(db, "submissions"), where("userId", "==", userId));
+  const unsubSubmissions = onSnapshot(subQ, (snap) => {
+    const submissions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    submissions.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    sendEvent("submissions", submissions);
+  }, (err) => console.error("SSE User Submissions error:", err));
+
   req.on("close", () => {
     unsubNotifications();
+    unsubSubmissions();
   });
 });
 
@@ -443,13 +452,128 @@ app.get("/api/admin/stream", requireAdmin, (req, res) => {
     sendEvent("messages", messages);
   }, (err) => console.error("SSE Messages error:", err));
 
+  const unsubSubmissions = onSnapshot(collection(db, "submissions"), (snap) => {
+    const subs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    sendEvent("submissions", subs);
+  }, (err) => console.error("SSE Submissions error:", err));
+
   req.on("close", () => {
     unsubUsers();
     unsubActivity();
     unsubContent();
     unsubNewsletter();
     unsubMessages();
+    unsubSubmissions();
   });
+});
+
+// Submissions Endpoints
+app.post("/api/submissions", authenticateToken, async (req: any, res: any) => {
+  try {
+    const { 
+      title_uz, title_ru, title_en, 
+      excerpt_uz, excerpt_ru, excerpt_en, 
+      body_uz, body_ru, body_en, 
+      category, image_url, video_url 
+    } = req.body;
+
+    const userDoc = await getDoc(doc(db, "users", req.userId));
+    if (!userDoc.exists()) return res.status(404).json({ error: "User not found" });
+    const userData = userDoc.data();
+
+    const submissionData = {
+      userId: req.userId,
+      userName: userData.name || userData.username,
+      title_uz, title_ru, title_en,
+      excerpt_uz, excerpt_ru, excerpt_en,
+      body_uz, body_ru, body_en,
+      category,
+      image_url: image_url || "",
+      video_url: video_url || "",
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const docRef = await addDoc(collection(db, "submissions"), submissionData);
+    
+    await logActivity(req.userId, userData.email, userData.name, "submit_article", docRef.id, "Maqola yubordi", title_uz);
+
+    res.json({ success: true, id: docRef.id });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/user/submissions", authenticateToken, async (req: any, res: any) => {
+  try {
+    const q = query(collection(db, "submissions"), where("userId", "==", req.userId));
+    const snap = await getDocs(q);
+    const submissions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Sort manually since we might not have index yet
+    submissions.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    res.json(submissions);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch("/api/admin/submissions/:id", requireAdmin, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const { status, admin_feedback } = req.body;
+
+    const subRef = doc(db, "submissions", id);
+    const subSnap = await getDoc(subRef);
+    if (!subSnap.exists()) return res.status(404).json({ error: "Submission not found" });
+    const subData = subSnap.data();
+
+    await updateDoc(subRef, {
+      status,
+      admin_feedback: admin_feedback || "",
+      updated_at: new Date().toISOString()
+    });
+
+    // If accepted, add to content
+    if (status === 'accepted') {
+      const contentData = {
+        type: 'article',
+        category: subData.category,
+        title_uz: subData.title_uz,
+        title_ru: subData.title_ru,
+        title_en: subData.title_en,
+        excerpt_uz: subData.excerpt_uz,
+        excerpt_ru: subData.excerpt_ru,
+        excerpt_en: subData.excerpt_en,
+        body_uz: subData.body_uz,
+        body_ru: subData.body_ru,
+        body_en: subData.body_en,
+        author: subData.userName,
+        image_url: subData.image_url,
+        video_url: subData.video_url,
+        created_at: new Date().toISOString(),
+        is_admin_added: false,
+        submitted_by: subData.userId
+      };
+      await addDoc(collection(db, "content"), contentData);
+    }
+
+    // Add notification to user
+    await addDoc(collection(db, "notifications"), {
+      userId: subData.userId,
+      message: status === 'accepted' 
+        ? `Tabriklaymiz! Sizning "${subData.title_uz}" maqolangiz qabul qilindi va saytga joylashtirildi.` 
+        : `Afsuski, sizning "${subData.title_uz}" maqolangiz qabul qilinmadi. ${admin_feedback ? 'Sabab: ' + admin_feedback : ''}`,
+      contentId: id,
+      type: "submission_status",
+      read: false,
+      created_at: serverTimestamp()
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Admin User Management

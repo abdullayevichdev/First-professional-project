@@ -163,43 +163,69 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
     <PageWrapper className="min-h-screen bg-white dark:bg-dark-bg transition-colors duration-500">
       <article className="pb-32">
         {/* Header */}
-        <header className="bg-white dark:bg-dark-card py-24 border-b border-navy/5 dark:border-gold/5 transition-colors duration-500">
+        <motion.header 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="bg-white dark:bg-dark-card py-12 sm:py-24 border-b border-navy/5 dark:border-gold/5 transition-colors duration-500"
+        >
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <Link to={`/category/${item.category}`} className="inline-block text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-8 hover:text-navy dark:hover:text-white transition-colors">
-              {item.category.replace('_', ' ')}
-            </Link>
-            <h1 className="text-4xl md:text-6xl font-serif font-bold text-navy dark:text-white leading-tight mb-12">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Link to={`/category/${item.category}`} className="inline-block text-[9px] sm:text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-6 sm:mb-8 hover:text-navy dark:hover:text-white transition-colors">
+                {item.category.replace('_', ' ')}
+              </Link>
+            </motion.div>
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold text-navy dark:text-white leading-tight mb-8 sm:mb-12"
+            >
               {title}
-            </h1>
-            <div className="flex items-center justify-center space-x-8 text-[11px] font-bold text-navy/30 dark:text-gold/30 uppercase tracking-[0.2em]">
-              <div className="flex items-center space-x-3">
-                <AuthorIcon size={14} className="text-gold" />
+            </motion.h1>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-[10px] sm:text-[11px] font-bold text-navy/30 dark:text-gold/30 uppercase tracking-[0.2em]"
+            >
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <AuthorIcon size={12} className="text-gold sm:w-[14px] sm:h-[14px]" />
                 <span className="text-navy dark:text-gray-300">{item.author}</span>
               </div>
-              <span className="w-1 h-1 bg-gold rounded-full"></span>
-              <div className="flex items-center space-x-3">
-                <Calendar size={14} className="text-gold" />
+              <span className="hidden sm:block w-1 h-1 bg-gold rounded-full"></span>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <Calendar size={12} className="text-gold sm:w-[14px] sm:h-[14px]" />
                 <span className="text-navy dark:text-gray-300">
                   {new Date(item.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </header>
+        </motion.header>
 
         {/* Content */}
-        <div className="news-container mt-16">
+        <div className="news-container mt-8 sm:mt-16">
           <div className="max-w-5xl mx-auto">
-            <div className="aspect-video bg-white dark:bg-black/20 article-card mb-20 shadow-2xl">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="aspect-video bg-white dark:bg-black/20 article-card mb-12 sm:mb-20 shadow-2xl"
+            >
               <img
                 src={`https://picsum.photos/seed/${item.id}/1200/675`}
                 alt={title}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
-            </div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-20">
               {/* Sidebar Actions */}
               <div className="hidden lg:block lg:col-span-1">
                 <div className="sticky top-40 flex flex-col items-center gap-4">
@@ -234,9 +260,14 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
               </div>
 
               {/* Main Body */}
-              <div className="lg:col-span-11">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="lg:col-span-11"
+              >
                 <div className="max-w-3xl">
-                  <p className="text-2xl font-serif italic text-navy/60 dark:text-gray-400 leading-relaxed mb-16 border-l-4 border-gold pl-10">
+                  <p className="text-xl sm:text-2xl font-serif italic text-navy/60 dark:text-gray-400 leading-relaxed mb-12 sm:mb-16 border-l-4 border-gold pl-6 sm:pl-10">
                     {excerpt}
                   </p>
 
@@ -248,27 +279,27 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                         <p className="text-lg leading-loose">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
                       </div>
                       
-                      <div className="mt-20 bg-navy dark:bg-dark-card p-16 text-center relative z-20 article-card border border-gold/20 shadow-2xl">
-                        <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-8">
-                          <Lock size={32} className="text-gold" />
+                      <div className="mt-12 sm:mt-20 bg-navy dark:bg-dark-card p-8 sm:p-16 text-center relative z-20 article-card border border-gold/20 shadow-2xl">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8">
+                          <Lock size={28} className="text-gold sm:w-[32px] sm:h-[32px]" />
                         </div>
-                        <h2 className="text-3xl font-serif font-bold mb-6 text-white">
+                        <h2 className="text-2xl sm:text-3xl font-serif font-bold mb-4 sm:mb-6 text-white">
                           {t('article.exclusive_analysis')}
                         </h2>
-                        <p className="text-white/50 dark:text-gray-400 mb-10 max-w-sm mx-auto text-sm font-light leading-relaxed uppercase tracking-widest">
+                        <p className="text-white/50 dark:text-gray-400 mb-8 sm:mb-10 max-w-sm mx-auto text-[10px] sm:text-sm font-light leading-relaxed uppercase tracking-widest">
                           {t('auth.gmail_only')}
                         </p>
                         <button
                           onClick={() => setShowLoginModal(true)}
-                          className="btn-premium px-12 py-5"
+                          className="btn-premium px-8 py-4 sm:px-12 sm:py-5"
                         >
-                          <UserIcon size={18} />
+                          <UserIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
                           <span>{t('auth.login')}</span>
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="font-sans text-navy/80 dark:text-gray-300 leading-[2.2] text-lg space-y-10 font-light">
+                    <div className="font-sans text-navy/80 dark:text-gray-300 leading-[1.8] sm:leading-[2.2] text-base sm:text-lg space-y-8 sm:space-y-10 font-light">
                       {body?.split('\n').map((p, i) => (
                         <p key={i}>{p}</p>
                       ))}
@@ -307,7 +338,7 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
