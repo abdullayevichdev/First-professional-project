@@ -109,7 +109,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                       src={featured.image_url || `https://picsum.photos/seed/${featured.id}/1200/800`} 
                       alt={getTitle(featured)} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                      referrerPolicy="strict-origin-when-cross-origin"
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         console.error(`Image failed to load: ${target.src}`);
@@ -158,7 +158,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                           src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} 
                           alt={getTitle(item)} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                          referrerPolicy="strict-origin-when-cross-origin"
+                          referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400&h=400`;
@@ -227,7 +227,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                           src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} 
                           alt={getTitle(item)} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                          referrerPolicy="strict-origin-when-cross-origin"
+                          referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
@@ -265,7 +265,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                     src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=800&h=450" 
                     alt="Video" 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-90 dark:opacity-60" 
-                    referrerPolicy="strict-origin-when-cross-origin" 
+                    referrerPolicy="no-referrer" 
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-20 h-20 bg-gold rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
@@ -293,7 +293,16 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   >
                     <Link to={`/article/${item.id}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-10 items-center">
                       <div className="md:col-span-5 aspect-video overflow-hidden article-card shadow-lg">
-                        <img src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                        <img 
+                          src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} 
+                          alt={getTitle(item)} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
+                          }}
+                        />
                       </div>
                       <div className="md:col-span-7">
                         <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-2 sm:mb-3 block">{t('common.international_relations')}</span>
@@ -328,7 +337,16 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   >
                     <Link to={`/article/${item.id}`}>
                       <div className="aspect-square overflow-hidden mb-3 sm:mb-6 article-card shadow-md">
-                        <img src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" referrerPolicy="no-referrer" />
+                        <img 
+                          src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} 
+                          alt={getTitle(item)} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400&h=400`;
+                          }}
+                        />
                       </div>
                       <h3 className="text-sm sm:text-lg font-serif font-bold text-navy dark:text-white mb-2 group-hover:text-gold transition-colors leading-tight line-clamp-2">
                         {getTitle(item)}

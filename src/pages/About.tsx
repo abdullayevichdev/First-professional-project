@@ -59,7 +59,16 @@ export const About: React.FC = () => {
             viewport={{ once: true }}
             className="aspect-square bg-navy/5 dark:bg-black/20 article-card shadow-2xl"
           >
-            <img src="https://picsum.photos/seed/mission/800/800" alt="Mission" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <img 
+              src="https://picsum.photos/seed/mission/800/800" 
+              alt="Mission" 
+              className="w-full h-full object-cover" 
+              referrerPolicy="no-referrer" 
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = `https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=800`;
+              }}
+            />
           </motion.div>
         </div>
 
@@ -70,7 +79,16 @@ export const About: React.FC = () => {
             viewport={{ once: true }}
             className="order-2 md:order-1 aspect-square bg-navy/5 dark:bg-black/20 article-card shadow-2xl"
           >
-            <img src="https://picsum.photos/seed/why/800/800" alt="Why it matters" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <img 
+              src="https://picsum.photos/seed/why/800/800" 
+              alt="Why it matters" 
+              className="w-full h-full object-cover" 
+              referrerPolicy="no-referrer" 
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = `https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80&w=800&h=800`;
+              }}
+            />
           </motion.div>
           <motion.div
             initial={{ opacity: 0, x: 30 }}

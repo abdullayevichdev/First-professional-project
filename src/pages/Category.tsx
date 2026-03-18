@@ -75,11 +75,15 @@ export const Category: React.FC = () => {
             >
               <Link to={`/article/${item.id}`} className="group flex flex-col">
                 <div className="aspect-video bg-white dark:bg-black/20 article-card mb-6 sm:mb-8 shadow-lg">
-                  <img
-                    src={item.image_url || `https://picsum.photos/seed/${item.id}/800/450`}
-                    alt={getTitle(item)}
+                  <img 
+                    src={item.image_url || `https://picsum.photos/seed/${item.id}/800/450`} 
+                    alt={getTitle(item)} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800&h=450`;
+                    }}
                   />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-serif font-bold text-navy dark:text-white group-hover:text-gold transition-colors leading-tight mb-3 sm:mb-4">
