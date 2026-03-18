@@ -106,7 +106,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                 <Link to={`/article/${featured.id}`} className="block">
                   <div className="relative aspect-[16/9] overflow-hidden mb-8 article-card shadow-2xl">
                     <img 
-                      src={`https://picsum.photos/seed/${featured.id}/1200/800`} 
+                      src={featured.image_url || `https://picsum.photos/seed/${featured.id}/1200/800`} 
                       alt={getTitle(featured)} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                       referrerPolicy="no-referrer"
@@ -149,7 +149,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   >
                     <Link to={`/article/${item.id}`} className="group flex space-x-4 sm:space-x-6 items-start">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 overflow-hidden article-card shadow-md">
-                        <img src={`https://picsum.photos/seed/${item.id}/400/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                        <img src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
                       </div>
                       <div className="flex-grow">
                         <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-1 block">{item.category}</span>
@@ -209,7 +209,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   >
                     <Link to={`/article/${item.id}`}>
                       <div className="aspect-video overflow-hidden mb-4 sm:mb-6 article-card shadow-lg">
-                        <img src={`https://picsum.photos/seed/${item.id}/600/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                        <img src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
                       </div>
                       <h3 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white mb-3 sm:mb-4 group-hover:text-gold transition-colors leading-tight">
                         {getTitle(item)}
@@ -265,7 +265,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   >
                     <Link to={`/article/${item.id}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-10 items-center">
                       <div className="md:col-span-5 aspect-video overflow-hidden article-card shadow-lg">
-                        <img src={`https://picsum.photos/seed/${item.id}/600/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                        <img src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
                       </div>
                       <div className="md:col-span-7">
                         <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-2 sm:mb-3 block">{t('common.international_relations')}</span>
@@ -300,7 +300,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   >
                     <Link to={`/article/${item.id}`}>
                       <div className="aspect-square overflow-hidden mb-3 sm:mb-6 article-card shadow-md">
-                        <img src={`https://picsum.photos/seed/${item.id}/400/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" referrerPolicy="no-referrer" />
+                        <img src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" referrerPolicy="no-referrer" />
                       </div>
                       <h3 className="text-sm sm:text-lg font-serif font-bold text-navy dark:text-white mb-2 group-hover:text-gold transition-colors leading-tight line-clamp-2">
                         {getTitle(item)}

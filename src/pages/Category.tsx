@@ -76,7 +76,7 @@ export const Category: React.FC = () => {
               <Link to={`/article/${item.id}`} className="group flex flex-col">
                 <div className="aspect-video bg-white dark:bg-black/20 article-card mb-6 sm:mb-8 shadow-lg">
                   <img
-                    src={`https://picsum.photos/seed/${item.id}/800/450`}
+                    src={item.image_url || `https://picsum.photos/seed/${item.id}/800/450`}
                     alt={getTitle(item)}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                     referrerPolicy="no-referrer"

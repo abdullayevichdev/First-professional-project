@@ -17,9 +17,9 @@ const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || firebas
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, firestoreDatabaseId);
+export const db = (firestoreDatabaseId && firestoreDatabaseId !== "(default)")
+  ? initializeFirestore(app, { experimentalForceLongPolling: true }, firestoreDatabaseId)
+  : initializeFirestore(app, { experimentalForceLongPolling: true });
 
 export const googleProvider = new GoogleAuthProvider();
 export const appleProvider = new OAuthProvider('apple.com');

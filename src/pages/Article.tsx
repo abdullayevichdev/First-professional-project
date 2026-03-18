@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-import { toast } from 'react-hot-toast';
 import { User as UserIcon, Lock, Calendar, User as AuthorIcon, Share2, Bookmark, X, Loader2 } from 'lucide-react';
 import { ContentItem, User } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
@@ -138,9 +137,9 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
     } catch (err: any) {
       console.error('Login error:', err);
       if (err.message?.includes('Firebase is not configured')) {
-        toast.error('Authentication is not configured. Please set up Firebase environment variables.');
+        alert('Authentication is not configured. Please set up Firebase environment variables.');
       } else {
-        toast.error('An error occurred during login. Please try again.');
+        alert('An error occurred during login. Please try again.');
       }
       setIsLoggingIn(false);
     }
@@ -219,7 +218,7 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
               className="aspect-video bg-white dark:bg-black/20 article-card mb-12 sm:mb-20 shadow-2xl"
             >
               <img
-                src={`https://picsum.photos/seed/${item.id}/1200/675`}
+                src={item.image_url || `https://picsum.photos/seed/${item.id}/1200/675`}
                 alt={title}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"

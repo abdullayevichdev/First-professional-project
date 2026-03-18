@@ -33,6 +33,7 @@ export interface ContentItem {
   body_ru?: string | null;
   body_en?: string | null;
   author: string;
+  image_url?: string;
   video_url?: string;
   created_at: string;
   is_preview?: boolean;

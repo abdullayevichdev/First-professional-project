@@ -6,7 +6,6 @@ import './i18n';
 import { Toaster } from 'react-hot-toast';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
-import { SwipeNavigation } from './components/SwipeNavigation';
 import { Home } from './pages/Home';
 import { Article } from './pages/Article';
 import { Category } from './pages/Category';
@@ -20,38 +19,33 @@ import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
 import { User } from './types';
 
-export const SwipeContext = React.createContext<'left' | 'right' | null>(null);
-
-function AnimatedRoutes({ user, swipeDirection }: { user: User | null, swipeDirection: 'left' | 'right' | null }) {
+function AnimatedRoutes({ user }: { user: User | null }) {
   const location = useLocation();
 
   return (
-    <SwipeContext.Provider value={swipeDirection}>
-      <AnimatePresence mode="wait" custom={swipeDirection}>
-        {/* @ts-ignore */}
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Home user={user} />} />
-          <Route path="/article/:id" element={<Article user={user} />} />
-          <Route path="/category/:id" element={<Category />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/glossary" element={<Glossary />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/profile" element={<Profile user={user} />} />
-          <Route path="/submit-article" element={<SubmitArticle user={user} />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </AnimatePresence>
-    </SwipeContext.Provider>
+    <AnimatePresence mode="wait">
+      {/* @ts-ignore */}
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Home user={user} />} />
+        <Route path="/article/:id" element={<Article user={user} />} />
+        <Route path="/category/:id" element={<Category />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/glossary" element={<Glossary />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/profile" element={<Profile user={user} />} />
+        <Route path="/submit-article" element={<SubmitArticle user={user} />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
@@ -106,22 +100,19 @@ export default function App() {
     setUser(null);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white transition-colors duration-500">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
-      </div>
-    );
-  }
-
   return (
     <Router>
       <Toaster position="top-right" />
-      <SwipeNavigation setSwipeDirection={setSwipeDirection} />
       <div className="min-h-screen flex flex-col bg-white transition-colors duration-500">
         <Header user={user} onLogout={handleLogout} onLoginSuccess={fetchUser} />
         <main className="flex-grow">
-          <AnimatedRoutes user={user} swipeDirection={swipeDirection} />
+          {loading ? (
+            <div className="min-h-[60vh] flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
+            </div>
+          ) : (
+            <AnimatedRoutes user={user} />
+          )}
         </main>
         <Footer />
       </div>

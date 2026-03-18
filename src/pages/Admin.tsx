@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { toast } from 'react-hot-toast';
 import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download, Trash2, X, CheckCircle, XCircle, Eye, MessageSquare, Sparkles, Languages } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -73,6 +72,7 @@ export const Admin: React.FC = () => {
     body_ru: '',
     body_en: '',
     author: '',
+    image_url: '',
     video_url: ''
   });
 
@@ -211,23 +211,23 @@ export const Admin: React.FC = () => {
       });
       
       if (res.ok) {
-        toast.success(t('admin.msg_success'));
+        alert(t('admin.msg_success'));
         setMessageText('');
         setSelectedUser(null);
         // Refresh messages after sending
         const msgRes = await fetch('/api/admin/messages', { credentials: 'include' });
         if (msgRes.ok) setMessages(await msgRes.json());
       } else {
-        toast.error(t('admin.msg_failed'));
+        alert(t('admin.msg_failed'));
       }
     } catch (err) {
-      toast.error(t('admin.msg_error'));
+      alert(t('admin.msg_error'));
     }
   };
 
   const handleAutoTranslate = async () => {
     if (!contentForm.title_uz || !contentForm.excerpt_uz || !contentForm.body_uz) {
-      toast.error(t('submit_article.fill_uzbek_first'));
+      alert(t('submit_article.fill_uzbek_first'));
       return;
     }
 
@@ -250,7 +250,7 @@ export const Admin: React.FC = () => {
       }));
     } catch (err) {
       console.error('Translation failed:', err);
-      toast.error(t('submit_article.translation_failed'));
+      alert(t('submit_article.translation_failed'));
     } finally {
       setIsTranslating(false);
     }
@@ -268,7 +268,7 @@ export const Admin: React.FC = () => {
       });
       
       if (res.ok) {
-        toast.success('Yangi ma\'lumot muvaffaqiyatli qo\'shildi va foydalanuvchilarga xabar yuborildi!');
+        alert('Yangi ma\'lumot muvaffaqiyatli qo\'shildi va foydalanuvchilarga xabar yuborildi!');
         fetchData(false);
         setContentForm({
           type: 'article',
@@ -283,14 +283,15 @@ export const Admin: React.FC = () => {
           body_ru: '',
           body_en: '',
           author: '',
+          image_url: '',
           video_url: ''
         });
       } else {
-        toast.error('Xatolik yuz berdi');
+        alert('Xatolik yuz berdi');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Server xatosi');
+      alert('Server xatosi');
     } finally {
       setLoading(false);
     }
@@ -328,12 +329,12 @@ export const Admin: React.FC = () => {
       });
       
       if (res.ok) {
-        toast.success(status === 'accepted' ? 'Maqola qabul qilindi va saytga joylashtirildi!' : 'Maqola rad etildi.');
+        alert(status === 'accepted' ? 'Maqola qabul qilindi va saytga joylashtirildi!' : 'Maqola rad etildi.');
         setSelectedSubmission(null);
         setFeedbackText('');
         fetchData(false);
       } else {
-        toast.error('Xatolik yuz berdi');
+        alert('Xatolik yuz berdi');
       }
     } catch (err) {
       console.error(err);
@@ -447,12 +448,12 @@ export const Admin: React.FC = () => {
           <div className="flex items-center space-x-3 sm:space-x-6">
             <button onClick={exportPDF} className="flex items-center space-x-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:text-gold transition-colors">
               <Download size={14} className="sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">{t('admin.export')}</span>
+              <span className="hidden sm:inline">{t('admin.export')}</span>
             </button>
             <div className="h-4 w-[1px] bg-white/20"></div>
             <button onClick={handleLogout} className="flex items-center space-x-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:text-red-400 transition-colors">
               <LogOut size={14} className="sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">{t('admin.exit')}</span>
+              <span className="hidden sm:inline">{t('admin.exit')}</span>
             </button>
           </div>
         </div>
@@ -1066,6 +1067,15 @@ export const Admin: React.FC = () => {
                       type="text"
                       value={contentForm.author}
                       onChange={(e) => setContentForm({...contentForm, author: e.target.value})}
+                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Image URL (ixtiyoriy)</label>
+                    <input 
+                      type="text"
+                      value={contentForm.image_url}
+                      onChange={(e) => setContentForm({...contentForm, image_url: e.target.value})}
                       className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
                     />
                   </div>
