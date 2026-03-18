@@ -7,7 +7,6 @@ import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
 import { PageWrapper } from '../components/PageWrapper';
 import { ContentItem, ArticleSubmission } from '../types';
-import { autoTranslateArticle } from '../services/translationService';
 
 const parseDate = (dateString: string) => {
   if (!dateString) return new Date();
@@ -53,24 +52,18 @@ export const Admin: React.FC = () => {
   const [messageText, setMessageText] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteSubmissionConfirmId, setDeleteSubmissionConfirmId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<ArticleSubmission | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [submissionFilter, setSubmissionFilter] = useState<'pending' | 'accepted' | 'rejected'>('pending');
-  const [isTranslating, setIsTranslating] = useState(false);
 
   // New Content Form State
   const [contentForm, setContentForm] = useState({
     type: 'article',
     category: 'uzbekistan',
     title_uz: '',
-    title_ru: '',
-    title_en: '',
     excerpt_uz: '',
-    excerpt_ru: '',
-    excerpt_en: '',
     body_uz: '',
-    body_ru: '',
-    body_en: '',
     author: '',
     image_url: '',
     video_url: ''
@@ -225,37 +218,6 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const handleAutoTranslate = async () => {
-    if (!contentForm.title_uz || !contentForm.excerpt_uz || !contentForm.body_uz) {
-      alert(t('submit_article.fill_uzbek_first'));
-      return;
-    }
-
-    setIsTranslating(true);
-    try {
-      const translations = await autoTranslateArticle({
-        title: contentForm.title_uz,
-        excerpt: contentForm.excerpt_uz,
-        body: contentForm.body_uz
-      });
-
-      setContentForm(prev => ({
-        ...prev,
-        title_ru: translations.ru.title,
-        title_en: translations.en.title,
-        excerpt_ru: translations.ru.excerpt,
-        excerpt_en: translations.en.excerpt,
-        body_ru: translations.ru.body,
-        body_en: translations.en.body
-      }));
-    } catch (err) {
-      console.error('Translation failed:', err);
-      alert(t('submit_article.translation_failed'));
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
   const handleAddContent = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -335,6 +297,28 @@ export const Admin: React.FC = () => {
         fetchData(false);
       } else {
         alert('Xatolik yuz berdi');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteSubmission = async (id: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/submissions/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        setDeleteSubmissionConfirmId(null);
+        setSelectedSubmission(null);
+        fetchData(false);
+      } else {
+        console.error("O'chirishda xatolik yuz berdi");
       }
     } catch (err) {
       console.error(err);
@@ -920,24 +904,6 @@ export const Admin: React.FC = () => {
           <div className="bg-white dark:bg-dark-card rounded-sm shadow-sm p-8">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-xl font-serif font-bold text-navy dark:text-white">{t('admin.add_content')}</h3>
-              <button
-                type="button"
-                onClick={handleAutoTranslate}
-                disabled={isTranslating || !contentForm.title_uz}
-                className="flex items-center space-x-2 px-6 py-2 bg-gold/10 text-gold rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-gold hover:text-white transition-all disabled:opacity-50"
-              >
-                {isTranslating ? (
-                  <>
-                    <Languages className="animate-spin" size={14} />
-                    <span>{t('submit_article.translating')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={14} />
-                    <span>{t('submit_article.auto_translate')}</span>
-                  </>
-                )}
-              </button>
             </div>
             <form onSubmit={handleAddContent} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -969,9 +935,9 @@ export const Admin: React.FC = () => {
               </div>
 
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha (UZ)</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha</label>
                     <input 
                       required
                       type="text"
@@ -980,31 +946,11 @@ export const Admin: React.FC = () => {
                       className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha (RU)</label>
-                    <input 
-                      required
-                      type="text"
-                      value={contentForm.title_ru}
-                      onChange={(e) => setContentForm({...contentForm, title_ru: e.target.value})}
-                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha (EN)</label>
-                    <input 
-                      required
-                      type="text"
-                      value={contentForm.title_en}
-                      onChange={(e) => setContentForm({...contentForm, title_en: e.target.value})}
-                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
-                    />
-                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha (UZ)</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha</label>
                     <textarea 
                       required
                       value={contentForm.excerpt_uz}
@@ -1012,48 +958,14 @@ export const Admin: React.FC = () => {
                       className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-24 resize-none"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha (RU)</label>
-                    <textarea 
-                      required
-                      value={contentForm.excerpt_ru}
-                      onChange={(e) => setContentForm({...contentForm, excerpt_ru: e.target.value})}
-                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-24 resize-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha (EN)</label>
-                    <textarea 
-                      required
-                      value={contentForm.excerpt_en}
-                      onChange={(e) => setContentForm({...contentForm, excerpt_en: e.target.value})}
-                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-24 resize-none"
-                    />
-                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn (UZ)</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn</label>
                     <textarea 
                       value={contentForm.body_uz}
                       onChange={(e) => setContentForm({...contentForm, body_uz: e.target.value})}
-                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-48 resize-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn (RU)</label>
-                    <textarea 
-                      value={contentForm.body_ru}
-                      onChange={(e) => setContentForm({...contentForm, body_ru: e.target.value})}
-                      className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-48 resize-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn (EN)</label>
-                    <textarea 
-                      value={contentForm.body_en}
-                      onChange={(e) => setContentForm({...contentForm, body_en: e.target.value})}
                       className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-48 resize-none"
                     />
                   </div>
@@ -1223,7 +1135,7 @@ export const Admin: React.FC = () => {
               )}
             </div>
 
-            {selectedSubmission.status === 'pending' && (
+            {selectedSubmission.status === 'pending' ? (
               <div className="p-8 bg-gray-50 dark:bg-dark-bg border-t border-navy/5 dark:border-gold/10 flex justify-end space-x-4">
                 <button 
                   onClick={() => handleUpdateSubmission(selectedSubmission.id, 'rejected')}
@@ -1242,7 +1154,18 @@ export const Admin: React.FC = () => {
                   <span>Qabul qilish va joylashtirish</span>
                 </button>
               </div>
-            )}
+            ) : selectedSubmission.status !== 'pending' ? (
+              <div className="p-8 bg-gray-50 dark:bg-dark-bg border-t border-navy/5 dark:border-gold/10 flex justify-end space-x-4">
+                <button 
+                  onClick={() => setDeleteSubmissionConfirmId(selectedSubmission.id)}
+                  disabled={loading}
+                  className="px-8 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all flex items-center space-x-2 disabled:opacity-50"
+                >
+                  <Trash2 size={16} />
+                  <span>Maqolani o'chirish</span>
+                </button>
+              </div>
+            ) : null}
           </motion.div>
         </div>
       )}
@@ -1313,6 +1236,41 @@ export const Admin: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => setDeleteConfirmId(null)}
+                  className="w-full py-4 bg-gray-100 dark:bg-white/5 text-navy dark:text-white font-bold uppercase tracking-widest rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                >
+                  {t('admin.no_cancel')}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Submission Modal */}
+      {deleteSubmissionConfirmId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[130] p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-dark-card w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-navy/5 dark:border-gold/10"
+          >
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash2 size={32} className="text-red-500" />
+              </div>
+              <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-4">Maqolani o'chirish</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8">Haqiqatan ham ushbu maqolani o'chirib tashlamoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi va saytdan ham o'chiriladi.</p>
+              
+              <div className="flex flex-col space-y-3">
+                <button 
+                  onClick={() => handleDeleteSubmission(deleteSubmissionConfirmId)}
+                  disabled={loading}
+                  className="w-full py-4 bg-red-500 text-white font-bold uppercase tracking-widest rounded-2xl hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50"
+                >
+                  {loading ? t('admin.loading') : t('admin.yes_delete')}
+                </button>
+                <button 
+                  onClick={() => setDeleteSubmissionConfirmId(null)}
                   className="w-full py-4 bg-gray-100 dark:bg-white/5 text-navy dark:text-white font-bold uppercase tracking-widest rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                 >
                   {t('admin.no_cancel')}

@@ -42,7 +42,7 @@ const firebaseConfig = {
   authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "tahqiq-87f79.firebaseapp.com",
   projectId: process.env.VITE_FIREBASE_PROJECT_ID || "tahqiq-87f79",
   messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "415984827866",
-  appId: process.env.VITE_FIREBASE_APP_ID || "1:415984827866:web:08e196f183a0541d4894e3",
+  appId: process.env.VITE_FIREBASE_APP_ID || "1:415984827866:web:d8708b3ccfcec0454894e3",
   measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || "G-QX1GSZZ5WS"
 };
 
@@ -553,7 +553,8 @@ app.patch("/api/admin/submissions/:id", requireAdmin, async (req: any, res: any)
         video_url: subData.video_url,
         created_at: new Date().toISOString(),
         is_admin_added: false,
-        submitted_by: subData.userId
+        submitted_by: subData.userId,
+        submissionId: id
       };
       await addDoc(collection(db, "content"), contentData);
     }
@@ -570,6 +571,26 @@ app.patch("/api/admin/submissions/:id", requireAdmin, async (req: any, res: any)
       created_at: serverTimestamp()
     });
 
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/admin/submissions/:id", requireAdmin, async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if there is any content associated with this submission and delete it
+    const q = query(collection(db, "content"), where("submissionId", "==", id));
+    const contentSnap = await getDocs(q);
+    for (const docSnap of contentSnap.docs) {
+      await deleteDoc(doc(db, "content", docSnap.id));
+    }
+
+    // Delete the submission itself
+    await deleteDoc(doc(db, "submissions", id));
+    
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -825,7 +846,9 @@ async function startServer() {
         next(e);
       }
     });
-  } else {
+  } else if (process.env.VERCEL !== "1") {
+    // Only serve static files manually if NOT on Vercel
+    // Vercel handles static file serving and SPA fallback automatically via vercel.json
     const distPath = path.join(process.cwd(), "dist");
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));

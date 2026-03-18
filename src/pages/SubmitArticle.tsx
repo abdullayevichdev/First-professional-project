@@ -5,7 +5,6 @@ import { motion } from 'motion/react';
 import { Send, Image as ImageIcon, Video, AlertCircle, CheckCircle, Loader2, Languages, Sparkles } from 'lucide-react';
 import { PageWrapper } from '../components/PageWrapper';
 import { User } from '../types';
-import { autoTranslateArticle } from '../services/translationService';
 
 interface SubmitArticleProps {
   user: User | null;
@@ -15,20 +14,13 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [translating, setTranslating] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title_uz: '',
-    title_ru: '',
-    title_en: '',
     excerpt_uz: '',
-    excerpt_ru: '',
-    excerpt_en: '',
     body_uz: '',
-    body_ru: '',
-    body_en: '',
     category: 'uzbekistan',
     image_url: '',
     video_url: ''
@@ -50,37 +42,6 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAutoTranslate = async () => {
-    if (!formData.title_uz || !formData.excerpt_uz || !formData.body_uz) {
-      setError("Iltimos, avval o'zbekcha maydonlarni to'ldiring.");
-      return;
-    }
-
-    setTranslating(true);
-    setError(null);
-    try {
-      const translations = await autoTranslateArticle({
-        title: formData.title_uz,
-        excerpt: formData.excerpt_uz,
-        body: formData.body_uz
-      });
-
-      setFormData(prev => ({
-        ...prev,
-        title_ru: translations.ru.title,
-        excerpt_ru: translations.ru.excerpt,
-        body_ru: translations.ru.body,
-        title_en: translations.en.title,
-        excerpt_en: translations.en.excerpt,
-        body_en: translations.en.body,
-      }));
-    } catch (err: any) {
-      setError("Tarjima qilishda xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.");
-    } finally {
-      setTranslating(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -156,25 +117,11 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 dark:border-white/5 pb-4 gap-4">
               <h2 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white">{t('submit_article.content_title')}</h2>
-              <button
-                type="button"
-                onClick={handleAutoTranslate}
-                disabled={translating}
-                className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-gold/10 hover:bg-gold/20 text-gold rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 w-full sm:w-auto"
-              >
-                {translating ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Sparkles size={14} />
-                )}
-                <span>{translating ? t('submit_article.translating') : t('submit_article.auto_translate')}</span>
-              </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 gap-8">
               {/* Uzbek */}
               <div className="space-y-4 sm:space-y-6">
-                <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gold border-b border-gold/10 pb-2">{t('submit_article.uzbek')}</h3>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_title')}</label>
@@ -187,44 +134,6 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
                   <div>
                     <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_body')}</label>
                     <textarea required name="body_uz" value={formData.body_uz} onChange={handleChange} rows={10} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Russian */}
-              <div className="space-y-4 sm:space-y-6">
-                <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gold border-b border-gold/10 pb-2">{t('submit_article.russian')}</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_title')}</label>
-                    <input required name="title_ru" value={formData.title_ru} onChange={handleChange} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_excerpt')}</label>
-                    <textarea required name="excerpt_ru" value={formData.excerpt_ru} onChange={handleChange} rows={3} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_body')}</label>
-                    <textarea required name="body_ru" value={formData.body_ru} onChange={handleChange} rows={10} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
-                  </div>
-                </div>
-              </div>
-
-              {/* English */}
-              <div className="space-y-4 sm:space-y-6">
-                <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gold border-b border-gold/10 pb-2">{t('submit_article.english')}</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_title')}</label>
-                    <input required name="title_en" value={formData.title_en} onChange={handleChange} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_excerpt')}</label>
-                    <textarea required name="excerpt_en" value={formData.excerpt_en} onChange={handleChange} rows={3} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
-                  </div>
-                  <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_body')}</label>
-                    <textarea required name="body_en" value={formData.body_en} onChange={handleChange} rows={10} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
                   </div>
                 </div>
               </div>
@@ -285,7 +194,7 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={loading || translating}
+              disabled={loading}
               className="btn-premium px-12 py-4 flex items-center space-x-3"
             >
               {loading ? (
