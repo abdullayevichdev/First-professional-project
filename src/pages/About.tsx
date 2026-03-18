@@ -66,7 +66,11 @@ export const About: React.FC = () => {
               referrerPolicy="no-referrer" 
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = `https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=800`;
+                if (target.src.includes('unsplash.com')) {
+                  target.src = `https://picsum.photos/seed/mission/800/800`;
+                } else {
+                  target.src = `https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=800`;
+                }
               }}
             />
           </motion.div>
@@ -86,7 +90,11 @@ export const About: React.FC = () => {
               referrerPolicy="no-referrer" 
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = `https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80&w=800&h=800`;
+                if (target.src.includes('unsplash.com')) {
+                  target.src = `https://picsum.photos/seed/why/800/800`;
+                } else {
+                  target.src = `https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80&w=800&h=800`;
+                }
               }}
             />
           </motion.div>

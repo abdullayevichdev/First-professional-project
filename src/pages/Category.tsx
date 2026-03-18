@@ -82,7 +82,11 @@ export const Category: React.FC = () => {
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800&h=450`;
+                      if (target.src.includes('unsplash.com')) {
+                        target.src = `https://picsum.photos/seed/${item.id}/800/450`;
+                      } else {
+                        target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800&h=450`;
+                      }
                     }}
                   />
                 </div>

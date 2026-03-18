@@ -14,13 +14,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
   const { t, i18n } = useTranslation();
   const [content, setContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30s
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       try {
         const res = await fetch('/api/content', { 
@@ -32,13 +33,19 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
           const data = await res.json();
           if (Array.isArray(data)) {
             setContent(data);
+            if (data.length === 0) {
+              console.warn("No content found in database");
+            }
           }
+        } else {
+          setError(`Server error: ${res.status}`);
         }
       } catch (error: any) {
         if (error.name === 'AbortError') {
-          console.warn('Fetch content timed out after 30s');
+          setError("Ulanish vaqti tugadi (30s). Internetni tekshiring.");
         } else {
           console.error("Failed to fetch content:", error);
+          setError("Ma'lumotlar bazasiga ulanib bo'lmadi.");
         }
       } finally {
         setLoading(false);
@@ -59,9 +66,36 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
     return item.excerpt_uz;
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-navy"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div></div>;
 
-  const featured = content.find(i => i.id === 'art-1');
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-navy text-white p-4">
+        <div className="bg-red-500/20 border border-red-500 p-6 rounded-lg max-w-md text-center">
+          <h2 className="text-xl font-bold mb-2">Ulanishda xatolik</h2>
+          <p className="mb-4 opacity-80">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-gold text-navy px-6 py-2 rounded font-bold hover:bg-gold/80 transition-colors"
+          >
+            Qayta urinish
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (content.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-navy text-white p-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Ma'lumot topilmadi</h2>
+          <p className="opacity-60">Hozircha hech qanday maqola mavjud emas.</p>
+        </div>
+      </div>
+    );
+  }
+  const featuredContent = content.find(i => i.id === 'art-1') || content[0];
   const latestAnalysis = content.filter(i => i.id !== 'art-1').slice(0, 4);
   const uzbPolitics = content.filter(i => i.category === 'uzbekistan');
   const globalPolitics = content.filter(i => i.category === 'global');
@@ -102,35 +136,38 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
               transition={{ duration: 0.8 }}
               className="lg:col-span-8 group"
             >
-              {featured && (
-                <Link to={`/article/${featured.id}`} className="block">
+              {featuredContent && (
+                <Link to={`/article/${featuredContent.id}`} className="block">
                   <div className="relative aspect-[16/9] overflow-hidden mb-8 article-card shadow-2xl">
                     <img 
-                      src={featured.image_url || `https://picsum.photos/seed/${featured.id}/1200/800`} 
-                      alt={getTitle(featured)} 
+                      src={featuredContent.image_url || `https://picsum.photos/seed/${featuredContent.id}/1200/800`} 
+                      alt={getTitle(featuredContent)} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                       referrerPolicy="no-referrer"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        console.error(`Image failed to load: ${target.src}`);
-                        target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200&h=800`;
+                        if (target.src.includes('unsplash.com')) {
+                          target.src = `https://picsum.photos/seed/${featuredContent.id}/1200/800`;
+                        } else {
+                          target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200&h=800`;
+                        }
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent opacity-60 dark:opacity-80"></div>
                     <div className="absolute bottom-0 left-0 p-6 sm:p-10 w-full">
                       <span className="inline-block bg-gold text-white dark:text-navy px-3 py-1 sm:px-4 sm:py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mb-3 sm:mb-4 shadow-lg">{t('common.featured_analysis')}</span>
                       <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-white leading-tight mb-3 sm:mb-4 group-hover:text-gold transition-colors duration-500">
-                        {getTitle(featured)}
+                        {getTitle(featuredContent)}
                       </h2>
                       <div className="flex items-center space-x-3 sm:space-x-4 text-white/60 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">
-                        <span>{featured.author}</span>
+                        <span>{featuredContent.author}</span>
                         <span className="w-1 h-1 bg-gold rounded-full"></span>
-                        <span>{new Date(featured.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}</span>
+                        <span>{new Date(featuredContent.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}</span>
                       </div>
                     </div>
                   </div>
                   <p className="text-xl text-navy/70 dark:text-gray-300 font-serif italic leading-relaxed line-clamp-2 border-l-4 border-gold pl-6">
-                    {getExcerpt(featured)}
+                    {getExcerpt(featuredContent)}
                   </p>
                 </Link>
               )}
@@ -161,7 +198,11 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400&h=400`;
+                            if (target.src.includes('unsplash.com')) {
+                              target.src = `https://picsum.photos/seed/${item.id}/400/400`;
+                            } else {
+                              target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400&h=400`;
+                            }
                           }}
                         />
                       </div>
@@ -230,7 +271,11 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
+                            if (target.src.includes('unsplash.com')) {
+                              target.src = `https://picsum.photos/seed/${item.id}/600/400`;
+                            } else {
+                              target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
+                            }
                           }}
                         />
                       </div>
@@ -300,7 +345,11 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
+                            if (target.src.includes('unsplash.com')) {
+                              target.src = `https://picsum.photos/seed/${item.id}/600/400`;
+                            } else {
+                              target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
+                            }
                           }}
                         />
                       </div>
@@ -344,7 +393,11 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400&h=400`;
+                            if (target.src.includes('unsplash.com')) {
+                              target.src = `https://picsum.photos/seed/${item.id}/400/400`;
+                            } else {
+                              target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400&h=400`;
+                            }
                           }}
                         />
                       </div>

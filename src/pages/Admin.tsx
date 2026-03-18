@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download, Trash2, X, CheckCircle, XCircle, Eye, MessageSquare, Sparkles, Languages } from 'lucide-react';
+import { Lock, Users, Activity, FileText, Send, LogOut, Search, Download, Trash2, X, CheckCircle, XCircle, Eye, MessageSquare, Sparkles, Languages, Image as ImageIcon } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
@@ -853,6 +853,7 @@ export const Admin: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-navy/5 dark:bg-gold/5">
                     <tr>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Rasm</th>
                       <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Muallif</th>
                       <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Sarlavha</th>
                       <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Kategoriya</th>
@@ -866,6 +867,30 @@ export const Admin: React.FC = () => {
                       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                       .map((sub) => (
                         <tr key={sub.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="w-12 h-8 rounded bg-gray-100 dark:bg-white/5 overflow-hidden">
+                              {sub.image_url ? (
+                                <img 
+                                  src={sub.image_url} 
+                                  alt="" 
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    if (target.src.includes('unsplash.com')) {
+                                      target.src = `https://picsum.photos/seed/${sub.id}/400/300`;
+                                    } else {
+                                      target.src = `https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=400&h=300`;
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                  <ImageIcon size={14} />
+                                </div>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
@@ -1018,6 +1043,7 @@ export const Admin: React.FC = () => {
                 <table className="w-full">
                   <thead className="bg-navy/5 dark:bg-gold/5">
                     <tr>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Rasm</th>
                       <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Sarlavha</th>
                       <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Turi</th>
                       <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-navy dark:text-gold">Bo'lim</th>
@@ -1028,6 +1054,30 @@ export const Admin: React.FC = () => {
                   <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
                     {contentList.filter(i => i.is_admin_added).map((item) => (
                       <tr key={item.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="w-12 h-8 rounded bg-gray-100 dark:bg-white/5 overflow-hidden">
+                            {item.image_url ? (
+                              <img 
+                                src={item.image_url} 
+                                alt="" 
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (target.src.includes('unsplash.com')) {
+                                    target.src = `https://picsum.photos/seed/${item.id}/400/300`;
+                                  } else {
+                                    target.src = `https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=400&h=300`;
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <ImageIcon size={14} />
+                              </div>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-4">
                           <span className="font-medium text-sm text-navy dark:text-white">{item.title_uz}</span>
                         </td>
@@ -1108,9 +1158,27 @@ export const Admin: React.FC = () => {
                 <h4 className="text-xs font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40">Media va Havolalar</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {selectedSubmission.image_url && (
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block mb-2">Rasm URL</span>
-                      <a href={selectedSubmission.image_url} target="_blank" rel="noreferrer" className="text-sm text-gold hover:underline truncate block">{selectedSubmission.image_url}</a>
+                    <div className="space-y-4">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block mb-2">Rasm URL</span>
+                        <a href={selectedSubmission.image_url} target="_blank" rel="noreferrer" className="text-sm text-gold hover:underline truncate block">{selectedSubmission.image_url}</a>
+                      </div>
+                      <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 border border-navy/5 dark:border-gold/10">
+                        <img 
+                          src={selectedSubmission.image_url} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            if (target.src.includes('unsplash.com')) {
+                              target.src = `https://picsum.photos/seed/${selectedSubmission.id}/800/450`;
+                            } else {
+                              target.src = `https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=800&h=450`;
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
                   {selectedSubmission.video_url && (
