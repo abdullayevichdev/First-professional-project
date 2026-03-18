@@ -221,7 +221,11 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                 src={item.image_url || `https://picsum.photos/seed/${item.id}/1200/675`}
                 alt={title}
                 className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
+                referrerPolicy="strict-origin-when-cross-origin"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200&h=675`;
+                }}
               />
             </motion.div>
 

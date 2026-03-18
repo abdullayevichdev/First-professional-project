@@ -765,10 +765,19 @@ app.get("/api/content", async (req, res) => {
     });
     if (type) items = items.filter(i => i.type === type);
     if (category) items = items.filter(i => i.category === category);
-    items = items.map(i => ({
-      ...i,
-      created_at: (i as any).created_at?.toDate?.()?.toISOString() || null
-    }));
+    items = items.map(i => {
+      let createdAt = null;
+      if (i.created_at) {
+        if (typeof i.created_at === 'string') {
+          createdAt = i.created_at;
+        } else if (i.created_at.toDate) {
+          createdAt = i.created_at.toDate().toISOString();
+        } else if (i.created_at.seconds) {
+          createdAt = new Date(i.created_at.seconds * 1000).toISOString();
+        }
+      }
+      return { ...i, created_at: createdAt };
+    });
     res.json(items);
   } catch (e) {
     res.status(500).json({ error: "Failed to fetch content" });
@@ -800,10 +809,19 @@ app.get("/api/search", async (req, res) => {
         normalize(i.body_en).includes(query) ||
         normalize(i.body_ru).includes(query)
       );
-    }).map(i => ({
-      ...i,
-      created_at: i.created_at?.toDate?.()?.toISOString() || null
-    }));
+    }).map(i => {
+      let createdAt = null;
+      if (i.created_at) {
+        if (typeof i.created_at === 'string') {
+          createdAt = i.created_at;
+        } else if (i.created_at.toDate) {
+          createdAt = i.created_at.toDate().toISOString();
+        } else if (i.created_at.seconds) {
+          createdAt = new Date(i.created_at.seconds * 1000).toISOString();
+        }
+      }
+      return { ...i, created_at: createdAt };
+    });
     
     res.json(results);
   } catch (e) {
@@ -818,7 +836,7 @@ app.get("/api/content/:id", async (req, res) => {
     const item = itemSnap.data();
     res.json({ 
       ...item, 
-      created_at: item.created_at?.toDate?.()?.toISOString() || null
+      created_at: item.created_at?.toDate ? item.created_at.toDate().toISOString() : (typeof item.created_at === 'string' ? item.created_at : null)
     });
   } catch (e) {
     res.status(500).json({ error: "Server error" });
@@ -829,7 +847,80 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+async function seedContent() {
+  try {
+    const snapshot = await getDocs(collection(db, "content"));
+    if (snapshot.empty) {
+      console.log("Seeding initial content...");
+      const initialContent = [
+        {
+          id: "art-1",
+          type: "article",
+          category: "uzbekistan",
+          title_uz: "O'zbekistonning yangi iqtisodiy strategiyasi: Tahlil",
+          title_ru: "Новая экономическая стратегия Узбекистана: Анализ",
+          title_en: "Uzbekistan's New Economic Strategy: An Analysis",
+          excerpt_uz: "O'zbekiston iqtisodiyotini modernizatsiya qilish yo'lidagi asosiy qadamlar va kutilayotgan natijalar haqida batafsil tahlil.",
+          excerpt_ru: "Подробный анализ основных шагов по модернизации экономики Узбекистана и ожидаемых результатов.",
+          excerpt_en: "A detailed analysis of the key steps towards modernizing Uzbekistan's economy and the expected results.",
+          body_uz: "O'zbekiston iqtisodiyoti so'nggi yillarda jadal rivojlanish bosqichiga kirdi. Yangi strategiya doirasida xususiylashtirish jarayonlari, xorijiy investitsiyalarni jalb qilish va eksport salohiyatini oshirishga alohida e'tibor qaratilmoqda...",
+          body_ru: "Экономика Узбекистана в последние годы вступила в фазу интенсивного развития. В рамках новой стратегии особое внимание уделяется процессам приватизации, привлечению иностранных инвестиций и повышению экспортного потенциала...",
+          body_en: "Uzbekistan's economy has entered a phase of rapid development in recent years. Within the framework of the new strategy, special attention is paid to privatization processes, attracting foreign investment and increasing export potential...",
+          author: "Tahqiq Tahlilchisi",
+          image_url: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=80&w=1200&h=800",
+          created_at: serverTimestamp(),
+          is_admin_added: true
+        },
+        {
+          id: "art-2",
+          type: "article",
+          category: "global",
+          title_uz: "Global geosiyosat: Markaziy Osiyoning o'rni",
+          title_ru: "Глобальная геополитика: Роль Центральной Азии",
+          title_en: "Global Geopolitics: The Role of Central Asia",
+          excerpt_uz: "Zamonaviy dunyoda Markaziy Osiyo mintaqasining strategik ahamiyati va yirik davlatlar bilan munosabatlari.",
+          excerpt_ru: "Стратегическое значение региона Центральной Азии в современном мире и его отношения с крупными державами.",
+          excerpt_en: "The strategic importance of the Central Asian region in the modern world and its relations with major powers.",
+          body_uz: "Markaziy Osiyo bugungi kunda global geosiyosatning muhim chorrahasiga aylandi. Mintaqa davlatlari o'rtasidagi hamkorlik va tashqi siyosatdagi muvozanat masalalari dolzarb bo'lib qolmoqda...",
+          body_ru: "Центральная Азия сегодня стала важным перекрестком глобальной геополитики. Вопросы сотрудничества между странами региона и баланса во внешней политике остаются актуальными...",
+          body_en: "Central Asia today has become an important crossroads of global geopolitics. Issues of cooperation between the countries of the region and balance in foreign policy remain relevant...",
+          author: "Siyosiy Sharhlovchi",
+          image_url: "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&q=80&w=1200&h=800",
+          created_at: serverTimestamp(),
+          is_admin_added: true
+        },
+        {
+          id: "art-3",
+          type: "article",
+          category: "speech",
+          title_uz: "Siyosiy nutq tahlili: Etika va Estetika",
+          title_ru: "Анализ политической речи: Этика и Эстетика",
+          title_en: "Political Speech Analysis: Ethics and Aesthetics",
+          excerpt_uz: "Siyosatchilarning nutq madaniyati va ularning xalqaro maydondagi ta'siri haqida ilmiy-ommabop tahlil.",
+          excerpt_ru: "Научно-популярный анализ речевой культуры политиков и их влияния на международной арене.",
+          excerpt_en: "A popular science analysis of the speech culture of politicians and their influence on the international arena.",
+          body_uz: "Nutq - bu siyosatchining eng kuchli qurolidir. Ushbu maqolada biz zamonaviy liderlarning nutq uslublari va ularning psixologik ta'sirini ko'rib chiqamiz...",
+          body_ru: "Речь — самое мощное оружие политика. В этой статье мы рассмотрим стили речи современных лидеров и их психологическое воздействие...",
+          body_en: "Speech is a politician's most powerful weapon. In this article, we will look at the speech styles of modern leaders and their psychological impact...",
+          author: "Nutqshunos",
+          image_url: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80&w=1200&h=800",
+          created_at: serverTimestamp(),
+          is_admin_added: true
+        }
+      ];
+
+      for (const item of initialContent) {
+        await setDoc(doc(db, "content", item.id), item);
+      }
+      console.log("Seeding completed.");
+    }
+  } catch (e) {
+    console.error("Failed to seed content", e);
+  }
+}
+
 async function startServer() {
+  await seedContent();
   if (process.env.NODE_ENV !== "production") {
     const viteModule = "vite";
     const { createServer: createViteServer } = await import(/* @vite-ignore */ viteModule);

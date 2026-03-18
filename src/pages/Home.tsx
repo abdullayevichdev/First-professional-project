@@ -109,7 +109,12 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                       src={featured.image_url || `https://picsum.photos/seed/${featured.id}/1200/800`} 
                       alt={getTitle(featured)} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                      referrerPolicy="no-referrer"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        console.error(`Image failed to load: ${target.src}`);
+                        target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200&h=800`;
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent opacity-60 dark:opacity-80"></div>
                     <div className="absolute bottom-0 left-0 p-6 sm:p-10 w-full">
@@ -149,7 +154,16 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   >
                     <Link to={`/article/${item.id}`} className="group flex space-x-4 sm:space-x-6 items-start">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 overflow-hidden article-card shadow-md">
-                        <img src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+                        <img 
+                          src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} 
+                          alt={getTitle(item)} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400&h=400`;
+                          }}
+                        />
                       </div>
                       <div className="flex-grow">
                         <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-1 block">{item.category}</span>
@@ -209,7 +223,16 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   >
                     <Link to={`/article/${item.id}`}>
                       <div className="aspect-video overflow-hidden mb-4 sm:mb-6 article-card shadow-lg">
-                        <img src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} alt={getTitle(item)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
+                        <img 
+                          src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} 
+                          alt={getTitle(item)} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
+                          }}
+                        />
                       </div>
                       <h3 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white mb-3 sm:mb-4 group-hover:text-gold transition-colors leading-tight">
                         {getTitle(item)}
@@ -238,7 +261,12 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   </a>
                 </div>
                 <a href="https://youtube.com/@TAHQIQ_OFFICIAL" target="_blank" rel="noreferrer" className="relative aspect-video article-card overflow-hidden group block">
-                  <img src="https://picsum.photos/seed/video/800/450" alt="Video" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-90 dark:opacity-60" referrerPolicy="no-referrer" />
+                  <img 
+                    src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=800&h=450" 
+                    alt="Video" 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-90 dark:opacity-60" 
+                    referrerPolicy="strict-origin-when-cross-origin" 
+                  />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-20 h-20 bg-gold rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
                       <Youtube size={40} className="text-white dark:text-navy ml-1" />

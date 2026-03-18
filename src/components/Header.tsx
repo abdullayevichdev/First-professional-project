@@ -215,7 +215,11 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                           src={item.image_url || `https://picsum.photos/seed/${item.id}/200/200`} 
                           alt="" 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          referrerPolicy="no-referrer"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=200&h=200`;
+                          }}
                         />
                       </div>
                       <div>
