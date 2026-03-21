@@ -4,6 +4,7 @@ import { AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import './i18n';
 import { Toaster } from 'react-hot-toast';
+import { HelmetProvider } from 'react-helmet-async';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
@@ -101,21 +102,23 @@ export default function App() {
   };
 
   return (
-    <Router>
-      <Toaster position="top-right" />
-      <div className="min-h-screen flex flex-col bg-white transition-colors duration-500">
-        <Header user={user} onLogout={handleLogout} onLoginSuccess={fetchUser} />
-        <main className="flex-grow">
-          {loading ? (
-            <div className="min-h-[60vh] flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
-            </div>
-          ) : (
-            <AnimatedRoutes user={user} />
-          )}
-        </main>
-        <Footer />
-      </div>
-    </Router>
+    <HelmetProvider>
+      <Router>
+        <Toaster position="top-right" />
+        <div className="min-h-screen flex flex-col bg-white transition-colors duration-500">
+          <Header user={user} onLogout={handleLogout} onLoginSuccess={fetchUser} />
+          <main className="flex-grow">
+            {loading ? (
+              <div className="min-h-[60vh] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
+              </div>
+            ) : (
+              <AnimatedRoutes user={user} />
+            )}
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </HelmetProvider>
   );
 }

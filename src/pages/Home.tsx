@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { ArrowRight, Youtube, BookOpen, MessageSquare, Lock } from 'lucide-react';
 import { ContentItem, User } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
@@ -125,6 +126,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
 
   return (
     <PageWrapper className="pb-24 transition-colors duration-500">
+      <Helmet>
+        <title>Tahqiq - Siyosiy Tahlil va Tadqiqotlar Markazi</title>
+        <meta name="description" content="O'zbekiston va jahon siyosati, nutq tahlili va strategik tadqiqotlar bo'yicha professional tahliliy portal." />
+        <meta property="og:title" content="Tahqiq - Siyosiy Tahlil va Tadqiqotlar Markazi" />
+        <meta property="og:description" content="O'zbekiston va jahon siyosati, nutq tahlili va strategik tadqiqotlar bo'yicha professional tahliliy portal." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Helmet>
       {/* Hero Section */}
       <section className="bg-white dark:bg-dark-card border-b border-navy/5 dark:border-gold/5 transition-colors duration-500">
         <div className="news-container py-6 sm:py-12">
@@ -241,9 +250,8 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
       </section>
 
       {/* Main Content Sections */}
-      {user ? (
-        <main className="news-container py-12 sm:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-16">
+      <main className="news-container py-12 sm:py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-16">
           {/* Left Column: Uzbekistan & Global */}
           <div className="lg:col-span-8 space-y-16 sm:space-y-32">
             {/* Uzbekistan Section */}
@@ -512,21 +520,6 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
           </aside>
         </div>
       </main>
-      ) : (
-        <div className="news-container py-24 text-center">
-          <div className="max-w-2xl mx-auto bg-white dark:bg-dark-card p-12 article-card border border-navy/10 dark:border-gold/20 shadow-2xl">
-            <div className="w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Lock size={32} className="text-gold" />
-            </div>
-            <h2 className="text-3xl font-serif font-bold mb-6 text-navy dark:text-white">
-              {t('common.preview_mode')}
-            </h2>
-            <p className="text-navy/60 dark:text-gray-400 mb-10 text-sm font-light leading-relaxed">
-              {t('auth.sign_in_desc')}
-            </p>
-          </div>
-        </div>
-      )}
     </PageWrapper>
   );
 };

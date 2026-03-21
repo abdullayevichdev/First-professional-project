@@ -58,12 +58,19 @@ export const Admin: React.FC = () => {
   const [submissionFilter, setSubmissionFilter] = useState<'pending' | 'accepted' | 'rejected'>('pending');
 
   // New Content Form State
+  const [activeContentLang, setActiveContentLang] = useState<'uz' | 'ru' | 'en'>('uz');
   const [contentForm, setContentForm] = useState({
     type: 'article',
     category: 'uzbekistan',
     title_uz: '',
+    title_ru: '',
+    title_en: '',
     excerpt_uz: '',
+    excerpt_ru: '',
+    excerpt_en: '',
     body_uz: '',
+    body_ru: '',
+    body_en: '',
     author: '',
     image_url: '',
     video_url: ''
@@ -959,15 +966,32 @@ export const Admin: React.FC = () => {
                 </div>
               </div>
 
+              <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-lg w-fit">
+                {(['uz', 'ru', 'en'] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setActiveContentLang(lang)}
+                    className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${
+                      activeContentLang === lang 
+                        ? 'bg-white dark:bg-gold text-navy dark:text-navy shadow-sm' 
+                        : 'text-gray-400 hover:text-navy dark:hover:text-white'
+                    }`}
+                  >
+                    {lang === 'uz' ? "O'zb" : lang === 'ru' ? 'Rus' : 'Eng'}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-6">
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Sarlavha ({activeContentLang.toUpperCase()})</label>
                     <input 
-                      required
+                      required={activeContentLang === 'uz'}
                       type="text"
-                      value={contentForm.title_uz}
-                      onChange={(e) => setContentForm({...contentForm, title_uz: e.target.value})}
+                      value={contentForm[`title_${activeContentLang}` as keyof typeof contentForm]}
+                      onChange={(e) => setContentForm({...contentForm, [`title_${activeContentLang}`]: e.target.value})}
                       className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
                     />
                   </div>
@@ -975,11 +999,11 @@ export const Admin: React.FC = () => {
 
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Qisqacha ({activeContentLang.toUpperCase()})</label>
                     <textarea 
-                      required
-                      value={contentForm.excerpt_uz}
-                      onChange={(e) => setContentForm({...contentForm, excerpt_uz: e.target.value})}
+                      required={activeContentLang === 'uz'}
+                      value={contentForm[`excerpt_${activeContentLang}` as keyof typeof contentForm]}
+                      onChange={(e) => setContentForm({...contentForm, [`excerpt_${activeContentLang}`]: e.target.value})}
                       className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-24 resize-none"
                     />
                   </div>
@@ -987,10 +1011,10 @@ export const Admin: React.FC = () => {
 
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Matn ({activeContentLang.toUpperCase()})</label>
                     <textarea 
-                      value={contentForm.body_uz}
-                      onChange={(e) => setContentForm({...contentForm, body_uz: e.target.value})}
+                      value={contentForm[`body_${activeContentLang}` as keyof typeof contentForm]}
+                      onChange={(e) => setContentForm({...contentForm, [`body_${activeContentLang}`]: e.target.value})}
                       className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all h-48 resize-none"
                     />
                   </div>

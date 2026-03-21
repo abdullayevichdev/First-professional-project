@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { User as UserIcon, Lock, Calendar, User as AuthorIcon, Share2, Bookmark, X, Loader2 } from 'lucide-react';
@@ -161,6 +162,16 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
 
   return (
     <PageWrapper className="min-h-screen bg-white dark:bg-dark-bg transition-colors duration-500">
+      <Helmet>
+        <title>{`${title || 'Tahqiq'} | Tahqiq`}</title>
+        <meta name="description" content={excerpt || ''} />
+        <meta property="og:title" content={title || ''} />
+        <meta property="og:description" content={excerpt || ''} />
+        <meta property="og:image" content={item.image_url || ''} />
+        <meta property="og:type" content="article" />
+        <meta property="article:published_time" content={item.created_at} />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Helmet>
       <article className="pb-32">
         {/* Header */}
         <motion.header 

@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import helmet from "helmet";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { 
   getFirestore, 
@@ -37,21 +38,48 @@ const PORT = 3000;
 const JWT_SECRET = process.env.VITE_JWT_SECRET || "tahqiq-super-secret-key-2026";
 
 // Firebase setup
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY || "AIzaSyCRI_uFBdXc20slLGWbm0K53GBT6mfgODE",
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "tahqiq-87f79.firebaseapp.com",
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || "tahqiq-87f79",
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || "tahqiq-87f79.firebasestorage.app",
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "415984827866",
-  appId: process.env.VITE_FIREBASE_APP_ID || "1:415984827866:web:d8708b3ccfcec0454894e3",
-  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || "G-QX1GSZZ5WS"
+let firebaseConfig: any = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID,
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || process.env.FIREBASE_MEASUREMENT_ID
 };
+
+// Fallback to firebase-applet-config.json if environment variables are missing
+const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+if (fs.existsSync(configPath)) {
+  try {
+    const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    firebaseConfig = {
+      apiKey: firebaseConfig.apiKey || localConfig.apiKey,
+      authDomain: firebaseConfig.authDomain || localConfig.authDomain,
+      projectId: firebaseConfig.projectId || localConfig.projectId,
+      storageBucket: firebaseConfig.storageBucket || localConfig.storageBucket,
+      messagingSenderId: firebaseConfig.messagingSenderId || localConfig.messagingSenderId,
+      appId: firebaseConfig.appId || localConfig.appId,
+      measurementId: firebaseConfig.measurementId || localConfig.measurementId
+    };
+    if (!process.env.VITE_FIREBASE_DATABASE_ID && !process.env.FIREBASE_DATABASE_ID && localConfig.firestoreDatabaseId) {
+      process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
+    }
+  } catch (e) {
+    console.error("Failed to read firebase-applet-config.json", e);
+  }
+}
+
+const firestoreDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || process.env.FIREBASE_DATABASE_ID;
 
 const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const db = getApps().length === 0 ? initializeFirestore(firebaseApp, {
   experimentalForceLongPolling: true,
-}) : getFirestore(firebaseApp);
+}, (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined) : getFirestore(firebaseApp);
 
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for now to allow external images easily
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
@@ -305,17 +333,21 @@ app.get("/api/user/stream", authenticateToken, (req: any, res) => {
   // Listen for notifications
   const q = query(collection(db, "notifications"), where("userId", "==", userId));
   const unsubNotifications = onSnapshot(q, (snap) => {
-    const notifications = snap.docs.map(d => {
-      const data = d.data() as any;
-      return {
-        id: d.id,
-        ...data,
-        created_at: data.created_at?.toDate?.()?.toISOString() || null
-      };
-    });
-    // Sort by created_at descending
-    notifications.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-    sendEvent("notifications", notifications);
+    try {
+      const notifications = snap.docs.map(d => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          ...data,
+          created_at: data.created_at?.toDate?.()?.toISOString() || null
+        };
+      });
+      // Sort by created_at descending
+      notifications.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      sendEvent("notifications", notifications);
+    } catch (e) {
+      console.error("Error processing notifications snap", e);
+    }
   }, (err) => console.error("SSE User Notifications error:", err));
 
   // Listen for submissions
@@ -484,11 +516,17 @@ app.post("/api/submissions", authenticateToken, async (req: any, res: any) => {
 
     const submissionData = {
       userId: req.userId,
-      userName: userData.name || userData.username,
-      title_uz, title_ru, title_en,
-      excerpt_uz, excerpt_ru, excerpt_en,
-      body_uz, body_ru, body_en,
-      category,
+      userName: userData.name || userData.username || "Foydalanuvchi",
+      title_uz: title_uz || "",
+      title_ru: title_ru || "",
+      title_en: title_en || "",
+      excerpt_uz: excerpt_uz || "",
+      excerpt_ru: excerpt_ru || "",
+      excerpt_en: excerpt_en || "",
+      body_uz: body_uz || "",
+      body_ru: body_ru || "",
+      body_en: body_en || "",
+      category: category || "uzbekistan",
       image_url: image_url || "",
       video_url: video_url || "",
       status: 'pending',
@@ -686,8 +724,28 @@ app.get("/api/admin/messages", requireAdmin, async (req, res) => {
 
 app.post("/api/admin/content", requireAdmin, async (req, res) => {
   try {
+    const {
+      type, category, author, image_url, video_url,
+      title_uz, title_ru, title_en,
+      excerpt_uz, excerpt_ru, excerpt_en,
+      body_uz, body_ru, body_en
+    } = req.body;
+
     const contentData = {
-      ...req.body,
+      type: type || "article",
+      category: category || "uzbekistan",
+      author: author || "Tahqiq",
+      image_url: image_url || "",
+      video_url: video_url || "",
+      title_uz: title_uz || "",
+      title_ru: title_ru || "",
+      title_en: title_en || "",
+      excerpt_uz: excerpt_uz || "",
+      excerpt_ru: excerpt_ru || "",
+      excerpt_en: excerpt_en || "",
+      body_uz: body_uz || "",
+      body_ru: body_ru || "",
+      body_en: body_en || "",
       is_admin_added: true,
       created_at: serverTimestamp()
     };
@@ -697,7 +755,7 @@ app.post("/api/admin/content", requireAdmin, async (req, res) => {
     const usersSnap = await getDocs(collection(db, "users"));
     const notifications = usersSnap.docs.map(userDoc => ({
       userId: userDoc.id,
-      message: `Yangi maqola: ${req.body.title_uz}`,
+      message: `Yangi maqola: ${title_uz || "Yangi maqola"}`,
       contentId: docRef.id,
       type: "new_content",
       read: false,

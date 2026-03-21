@@ -17,10 +17,17 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [activeLang, setActiveLang] = useState<'uz' | 'ru' | 'en'>('uz');
   const [formData, setFormData] = useState({
     title_uz: '',
+    title_ru: '',
+    title_en: '',
     excerpt_uz: '',
+    excerpt_ru: '',
+    excerpt_en: '',
     body_uz: '',
+    body_ru: '',
+    body_en: '',
     category: 'uzbekistan',
     image_url: '',
     video_url: ''
@@ -117,23 +124,65 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 dark:border-white/5 pb-4 gap-4">
               <h2 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white">{t('submit_article.content_title')}</h2>
+              <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-lg">
+                {(['uz', 'ru', 'en'] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setActiveLang(lang)}
+                    className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${
+                      activeLang === lang 
+                        ? 'bg-white dark:bg-gold text-navy dark:text-navy shadow-sm' 
+                        : 'text-gray-400 hover:text-navy dark:hover:text-white'
+                    }`}
+                  >
+                    {lang === 'uz' ? "O'zb" : lang === 'ru' ? 'Rus' : 'Eng'}
+                  </button>
+                ))}
+              </div>
             </div>
             
             <div className="grid grid-cols-1 gap-8">
-              {/* Uzbek */}
+              {/* Content Fields */}
               <div className="space-y-4 sm:space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_title')}</label>
-                    <input required name="title_uz" value={formData.title_uz} onChange={handleChange} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
+                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">
+                      {t('submit_article.label_title')} ({activeLang.toUpperCase()})
+                    </label>
+                    <input 
+                      required={activeLang === 'uz'} 
+                      name={`title_${activeLang}`} 
+                      value={formData[`title_${activeLang}` as keyof typeof formData]} 
+                      onChange={handleChange} 
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_excerpt')}</label>
-                    <textarea required name="excerpt_uz" value={formData.excerpt_uz} onChange={handleChange} rows={3} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
+                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">
+                      {t('submit_article.label_excerpt')} ({activeLang.toUpperCase()})
+                    </label>
+                    <textarea 
+                      required={activeLang === 'uz'} 
+                      name={`excerpt_${activeLang}`} 
+                      value={formData[`excerpt_${activeLang}` as keyof typeof formData]} 
+                      onChange={handleChange} 
+                      rows={3} 
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.label_body')}</label>
-                    <textarea required name="body_uz" value={formData.body_uz} onChange={handleChange} rows={10} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" />
+                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">
+                      {t('submit_article.label_body')} ({activeLang.toUpperCase()})
+                    </label>
+                    <textarea 
+                      required={activeLang === 'uz'} 
+                      name={`body_${activeLang}`} 
+                      value={formData[`body_${activeLang}` as keyof typeof formData]} 
+                      onChange={handleChange} 
+                      rows={10} 
+                      className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" 
+                    />
                   </div>
                 </div>
               </div>
