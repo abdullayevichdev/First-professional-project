@@ -87,8 +87,9 @@ if (!configFound && !firebaseConfig.apiKey) {
 
 const firestoreDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || process.env.FIREBASE_DATABASE_ID;
 
-let db: any;
-let firebaseApp: any;
+let db: any = null;
+let firebaseApp: any = null;
+let initError: any = null;
 
 try {
   firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -100,18 +101,33 @@ try {
     // Initialize with settings for the specific database if provided, otherwise default
     db = initializeFirestore(firebaseApp, {
       experimentalForceLongPolling: true,
-    }, dbId as any); // Some versions of the SDK might support this as an internal/undocumented 3rd param, but let's be safe
+    }, dbId as any);
   } else {
-    db = getFirestore(firebaseApp, dbId);
+    try {
+      db = getFirestore(firebaseApp, dbId);
+    } catch (e) {
+      // If getFirestore fails, try initializeFirestore as fallback
+      db = initializeFirestore(firebaseApp, {
+        experimentalForceLongPolling: true,
+      }, dbId as any);
+    }
   }
 
   console.log("Firebase Initialized Successfully:", {
     projectId: firebaseConfig.projectId,
     databaseId: dbId || "(default)",
-    hasApiKey: !!firebaseConfig.apiKey
+    hasApiKey: !!firebaseConfig.apiKey,
+    isNewApp,
+    configFound
   });
-} catch (error) {
+} catch (error: any) {
+  initError = error;
   console.error("CRITICAL: Firebase initialization failed:", error);
+  console.error("Firebase Config (redacted):", {
+    projectId: firebaseConfig.projectId,
+    hasApiKey: !!firebaseConfig.apiKey,
+    hasAppId: !!firebaseConfig.appId
+  });
 }
 
 app.use(helmet({
@@ -125,7 +141,14 @@ const checkDb = (req: any, res: any, next: any) => {
   if (!db) {
     return res.status(500).json({ 
       error: "Firebase not initialized", 
-      details: "Database instance is missing. Check server logs for initialization errors." 
+      details: "Database instance is missing.",
+      initError: initError ? initError.message : "Unknown initialization error",
+      configFound,
+      configPaths,
+      cwd: process.cwd(),
+      dirname: __dirname,
+      hasApiKey: !!firebaseConfig.apiKey,
+      projectId: firebaseConfig.projectId
     });
   }
   next();

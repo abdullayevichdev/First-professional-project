@@ -40,7 +40,11 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
           }
         } else {
           const errorData = await res.json().catch(() => ({}));
-          setError(`Server error: ${res.status}${errorData.details ? ` - ${errorData.details}` : ''}`);
+          let errorMsg = `Server error: ${res.status}`;
+          if (errorData.details) errorMsg += ` - ${errorData.details}`;
+          if (errorData.initError) errorMsg += ` (Init Error: ${errorData.initError})`;
+          if (errorData.projectId) errorMsg += ` [Project: ${errorData.projectId}]`;
+          setError(errorMsg);
         }
       } catch (error: any) {
         if (error.name === 'AbortError') {
