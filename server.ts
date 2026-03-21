@@ -27,8 +27,15 @@ import {
   onSnapshot
 } from "firebase/firestore";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+let __filename = '';
+let __dirname = '';
+try {
+  __filename = fileURLToPath(import.meta.url);
+  __dirname = dirname(__filename);
+} catch (e) {
+  console.error("ESM __dirname error:", e);
+  __dirname = process.cwd();
+}
 
 dotenv.config();
 
@@ -53,38 +60,43 @@ let firebaseConfig: any = {
   measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || process.env.FIREBASE_MEASUREMENT_ID
 };
 
-// Fallback to firebase-applet-config.json if environment variables are missing
-const configPaths = [
-  path.join(process.cwd(), "firebase-applet-config.json"),
-  path.join(__dirname, "firebase-applet-config.json"),
-  path.join(__dirname, "..", "firebase-applet-config.json")
-];
-
 let configFound = false;
-for (const configPath of configPaths) {
-  if (fs.existsSync(configPath)) {
-    try {
-      const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      firebaseConfig = {
-        apiKey: firebaseConfig.apiKey || localConfig.apiKey,
-        authDomain: firebaseConfig.authDomain || localConfig.authDomain,
-        projectId: firebaseConfig.projectId || localConfig.projectId,
-        storageBucket: firebaseConfig.storageBucket || localConfig.storageBucket,
-        messagingSenderId: firebaseConfig.messagingSenderId || localConfig.messagingSenderId,
-        appId: firebaseConfig.appId || localConfig.appId,
-        measurementId: firebaseConfig.measurementId || localConfig.measurementId
-      };
-      if (!process.env.VITE_FIREBASE_DATABASE_ID && !process.env.FIREBASE_DATABASE_ID && localConfig.firestoreDatabaseId) {
-        process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
+let configPaths: string[] = [];
+
+const loadConfig = () => {
+  configPaths = [
+    path.join(process.cwd(), "firebase-applet-config.json"),
+    path.join(__dirname, "firebase-applet-config.json"),
+    path.join(__dirname, "..", "firebase-applet-config.json")
+  ];
+
+  for (const configPath of configPaths) {
+    if (fs.existsSync(configPath)) {
+      try {
+        const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+        firebaseConfig = {
+          apiKey: firebaseConfig.apiKey || localConfig.apiKey,
+          authDomain: firebaseConfig.authDomain || localConfig.authDomain,
+          projectId: firebaseConfig.projectId || localConfig.projectId,
+          storageBucket: firebaseConfig.storageBucket || localConfig.storageBucket,
+          messagingSenderId: firebaseConfig.messagingSenderId || localConfig.messagingSenderId,
+          appId: firebaseConfig.appId || localConfig.appId,
+          measurementId: firebaseConfig.measurementId || localConfig.measurementId
+        };
+        if (!process.env.VITE_FIREBASE_DATABASE_ID && !process.env.FIREBASE_DATABASE_ID && localConfig.firestoreDatabaseId) {
+          process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
+        }
+        configFound = true;
+        console.log("Firebase config found at:", configPath);
+        break;
+      } catch (e) {
+        console.error("Failed to read firebase-applet-config.json at", configPath, e);
       }
-      configFound = true;
-      console.log("Firebase config found at:", configPath);
-      break;
-    } catch (e) {
-      console.error("Failed to read firebase-applet-config.json at", configPath, e);
     }
   }
-}
+};
+
+loadConfig();
 
 if (!configFound && !firebaseConfig.apiKey) {
   console.error("CRITICAL: No Firebase configuration found! Please set environment variables or provide firebase-applet-config.json");
@@ -97,6 +109,11 @@ let initError: any = null;
 
 const initializeFirebase = () => {
   try {
+    // If config is still missing, try loading it again (useful for serverless)
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      loadConfig();
+    }
+
     // Check if we have enough config to initialize
     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       const msg = `Missing required Firebase config: apiKey=${!!firebaseConfig.apiKey}, projectId=${!!firebaseConfig.projectId}`;

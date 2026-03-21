@@ -40,7 +40,18 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
             }
           }
         } else {
-          const errorData = await res.json().catch(() => ({}));
+          let errorData;
+          try {
+            errorData = await res.json();
+          } catch (e) {
+            const text = await res.text().catch(() => "No response body");
+            errorData = { 
+              isHtml: true, 
+              status: res.status,
+              body: text.substring(0, 2000),
+              error: "Server did not return JSON"
+            };
+          }
           setErrorDetails(errorData);
           let errorMsg = `Server error: ${res.status}`;
           if (errorData.details) errorMsg += ` - ${errorData.details}`;
@@ -83,9 +94,19 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
           <h2 className="text-xl font-bold mb-2">Ulanishda xatolik</h2>
           <p className="mb-4 opacity-80">{error}</p>
           {errorDetails && (
-            <div className="text-xs text-left bg-black/30 p-4 rounded overflow-auto max-h-60 font-mono mb-4">
+            <div className="text-xs text-left bg-black/30 p-4 rounded overflow-auto max-h-80 font-mono mb-4">
               <p className="text-red-300 font-bold mb-2">Debug Ma'lumotlari:</p>
-              <pre>{JSON.stringify(errorDetails, null, 2)}</pre>
+              {errorDetails.isHtml ? (
+                <div className="whitespace-pre-wrap break-all">
+                  <p className="text-yellow-300 mb-1">Status: {errorDetails.status}</p>
+                  <p className="text-yellow-300 mb-1">Response is HTML (likely a server crash):</p>
+                  <div className="bg-white/10 p-2 rounded mt-1">
+                    {errorDetails.body}
+                  </div>
+                </div>
+              ) : (
+                <pre>{JSON.stringify(errorDetails, null, 2)}</pre>
+              )}
             </div>
           )}
           <div className="flex flex-col gap-3">
