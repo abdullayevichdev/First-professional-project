@@ -34,6 +34,11 @@ dotenv.config();
 
 const app = express();
 app.set("trust proxy", 1);
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for now to allow external images easily
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
 const PORT = 3000;
 const JWT_SECRET = process.env.VITE_JWT_SECRET || "tahqiq-super-secret-key-2026";
 
@@ -85,74 +90,121 @@ if (!configFound && !firebaseConfig.apiKey) {
   console.error("CRITICAL: No Firebase configuration found! Please set environment variables or provide firebase-applet-config.json");
 }
 
-const firestoreDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || process.env.FIREBASE_DATABASE_ID;
-
+// Firebase initialization
 let db: any = null;
 let firebaseApp: any = null;
 let initError: any = null;
 
-try {
-  firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  const isNewApp = getApps().length === 1;
+const initializeFirebase = () => {
+  try {
+    // Check if we have enough config to initialize
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      const msg = `Missing required Firebase config: apiKey=${!!firebaseConfig.apiKey}, projectId=${!!firebaseConfig.projectId}`;
+      console.error("CRITICAL: " + msg);
+      throw new Error(msg);
+    }
 
-  const dbId = (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined;
-  
-  if (isNewApp) {
-    // Initialize with settings for the specific database if provided, otherwise default
-    db = initializeFirestore(firebaseApp, {
-      experimentalForceLongPolling: true,
-    }, dbId as any);
-  } else {
-    try {
-      db = getFirestore(firebaseApp, dbId);
-    } catch (e) {
-      // If getFirestore fails, try initializeFirestore as fallback
+    // Initialize Firebase
+    firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const isNewApp = getApps().length === 1;
+    
+    const firestoreDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || process.env.FIREBASE_DATABASE_ID;
+    const dbId = (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined;
+    
+    if (isNewApp) {
       db = initializeFirestore(firebaseApp, {
         experimentalForceLongPolling: true,
       }, dbId as any);
+    } else {
+      try {
+        db = getFirestore(firebaseApp, dbId);
+      } catch (e) {
+        db = initializeFirestore(firebaseApp, {
+          experimentalForceLongPolling: true,
+        }, dbId as any);
+      }
     }
+    
+    if (db) {
+      console.log("Firebase Initialized Successfully:", {
+        projectId: firebaseConfig.projectId,
+        databaseId: dbId || "(default)",
+        hasApiKey: !!firebaseConfig.apiKey,
+        isNewApp,
+        configFound
+      });
+      initError = null; // Clear any previous error
+    } else {
+      throw new Error("Firestore instance (db) is null after initialization attempt.");
+    }
+  } catch (error: any) {
+    initError = error;
+    console.error("CRITICAL: Firebase initialization failed:", error);
+    console.error("Firebase Config (redacted):", {
+      projectId: firebaseConfig.projectId,
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasAppId: !!firebaseConfig.appId,
+      configFound,
+      configPaths
+    });
   }
+};
 
-  console.log("Firebase Initialized Successfully:", {
-    projectId: firebaseConfig.projectId,
-    databaseId: dbId || "(default)",
-    hasApiKey: !!firebaseConfig.apiKey,
-    isNewApp,
-    configFound
-  });
-} catch (error: any) {
-  initError = error;
-  console.error("CRITICAL: Firebase initialization failed:", error);
-  console.error("Firebase Config (redacted):", {
-    projectId: firebaseConfig.projectId,
-    hasApiKey: !!firebaseConfig.apiKey,
-    hasAppId: !!firebaseConfig.appId
-  });
-}
-
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for now to allow external images easily
-}));
-app.use(express.json({ limit: '10mb' }));
-app.use(cookieParser());
+// Initial attempt
+initializeFirebase();
 
 // Middleware to check if Firebase DB is initialized
 const checkDb = (req: any, res: any, next: any) => {
+  // If db is not initialized, try one more time (useful for serverless environments)
+  if (!db) {
+    console.log("DB is null, attempting re-initialization...");
+    initializeFirebase();
+  }
+
   if (!db) {
     return res.status(500).json({ 
       error: "Firebase not initialized", 
-      details: "Database instance is missing.",
+      details: "Database instance is missing after re-initialization attempt.",
       initError: initError ? initError.message : "Unknown initialization error",
       configFound,
       configPaths,
       cwd: process.cwd(),
       dirname: __dirname,
       hasApiKey: !!firebaseConfig.apiKey,
-      projectId: firebaseConfig.projectId
+      apiKeyLength: firebaseConfig.apiKey ? firebaseConfig.apiKey.length : 0,
+      projectId: firebaseConfig.projectId,
+      env: {
+        NODE_ENV: process.env.NODE_ENV,
+        VERCEL: process.env.VERCEL,
+        HAS_VITE_API_KEY: !!process.env.VITE_FIREBASE_API_KEY,
+        HAS_FIREBASE_API_KEY: !!process.env.FIREBASE_API_KEY
+      }
     });
   }
   next();
 };
+
+// Debug route
+app.get("/api/debug-firebase", (req, res) => {
+  res.json({
+    status: db ? "initialized" : "failed",
+    configFound,
+    configPaths,
+    cwd: process.cwd(),
+    dirname: __dirname,
+    hasApiKey: !!firebaseConfig.apiKey,
+    apiKeyLength: firebaseConfig.apiKey ? firebaseConfig.apiKey.length : 0,
+    projectId: firebaseConfig.projectId,
+    initError: initError ? initError.message : null,
+    appsCount: getApps().length,
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: process.env.VERCEL,
+      HAS_VITE_API_KEY: !!process.env.VITE_FIREBASE_API_KEY,
+      HAS_FIREBASE_API_KEY: !!process.env.FIREBASE_API_KEY
+    }
+  });
+});
 
 // Apply db check to all /api routes except health
 app.use("/api", (req, res, next) => {

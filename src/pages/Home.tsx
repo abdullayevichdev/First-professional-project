@@ -16,6 +16,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
   const [content, setContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
@@ -40,6 +41,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
           }
         } else {
           const errorData = await res.json().catch(() => ({}));
+          setErrorDetails(errorData);
           let errorMsg = `Server error: ${res.status}`;
           if (errorData.details) errorMsg += ` - ${errorData.details}`;
           if (errorData.initError) errorMsg += ` (Init Error: ${errorData.initError})`;
@@ -80,12 +82,27 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
         <div className="bg-red-500/20 border border-red-500 p-6 rounded-lg max-w-md text-center">
           <h2 className="text-xl font-bold mb-2">Ulanishda xatolik</h2>
           <p className="mb-4 opacity-80">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-gold text-navy px-6 py-2 rounded font-bold hover:bg-gold/80 transition-colors"
-          >
-            Qayta urinish
-          </button>
+          {errorDetails && (
+            <div className="text-xs text-left bg-black/30 p-4 rounded overflow-auto max-h-60 font-mono mb-4">
+              <p className="text-red-300 font-bold mb-2">Debug Ma'lumotlari:</p>
+              <pre>{JSON.stringify(errorDetails, null, 2)}</pre>
+            </div>
+          )}
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-gold text-navy px-6 py-2 rounded font-bold hover:bg-gold/80 transition-colors"
+            >
+              Qayta urinish
+            </button>
+            <a 
+              href="/api/debug-firebase" 
+              target="_blank" 
+              className="text-xs underline opacity-50 hover:opacity-100"
+            >
+              Server Debug Ma'lumotlarini ko'rish
+            </a>
+          </div>
         </div>
       </div>
     );
