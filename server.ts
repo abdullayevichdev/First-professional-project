@@ -49,33 +49,70 @@ let firebaseConfig: any = {
 };
 
 // Fallback to firebase-applet-config.json if environment variables are missing
-const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-if (fs.existsSync(configPath)) {
-  try {
-    const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    firebaseConfig = {
-      apiKey: firebaseConfig.apiKey || localConfig.apiKey,
-      authDomain: firebaseConfig.authDomain || localConfig.authDomain,
-      projectId: firebaseConfig.projectId || localConfig.projectId,
-      storageBucket: firebaseConfig.storageBucket || localConfig.storageBucket,
-      messagingSenderId: firebaseConfig.messagingSenderId || localConfig.messagingSenderId,
-      appId: firebaseConfig.appId || localConfig.appId,
-      measurementId: firebaseConfig.measurementId || localConfig.measurementId
-    };
-    if (!process.env.VITE_FIREBASE_DATABASE_ID && !process.env.FIREBASE_DATABASE_ID && localConfig.firestoreDatabaseId) {
-      process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
+const configPaths = [
+  path.join(process.cwd(), "firebase-applet-config.json"),
+  path.join(__dirname, "firebase-applet-config.json"),
+  path.join(__dirname, "..", "firebase-applet-config.json")
+];
+
+let configFound = false;
+for (const configPath of configPaths) {
+  if (fs.existsSync(configPath)) {
+    try {
+      const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      firebaseConfig = {
+        apiKey: firebaseConfig.apiKey || localConfig.apiKey,
+        authDomain: firebaseConfig.authDomain || localConfig.authDomain,
+        projectId: firebaseConfig.projectId || localConfig.projectId,
+        storageBucket: firebaseConfig.storageBucket || localConfig.storageBucket,
+        messagingSenderId: firebaseConfig.messagingSenderId || localConfig.messagingSenderId,
+        appId: firebaseConfig.appId || localConfig.appId,
+        measurementId: firebaseConfig.measurementId || localConfig.measurementId
+      };
+      if (!process.env.VITE_FIREBASE_DATABASE_ID && !process.env.FIREBASE_DATABASE_ID && localConfig.firestoreDatabaseId) {
+        process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
+      }
+      configFound = true;
+      console.log("Firebase config found at:", configPath);
+      break;
+    } catch (e) {
+      console.error("Failed to read firebase-applet-config.json at", configPath, e);
     }
-  } catch (e) {
-    console.error("Failed to read firebase-applet-config.json", e);
   }
+}
+
+if (!configFound && !firebaseConfig.apiKey) {
+  console.error("CRITICAL: No Firebase configuration found! Please set environment variables or provide firebase-applet-config.json");
 }
 
 const firestoreDatabaseId = process.env.VITE_FIREBASE_DATABASE_ID || process.env.FIREBASE_DATABASE_ID;
 
-const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const db = getApps().length === 0 ? initializeFirestore(firebaseApp, {
-  experimentalForceLongPolling: true,
-}, (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined) : getFirestore(firebaseApp);
+let db: any;
+let firebaseApp: any;
+
+try {
+  firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  const isNewApp = getApps().length === 1;
+
+  const dbId = (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined;
+  
+  if (isNewApp) {
+    // Initialize with settings for the specific database if provided, otherwise default
+    db = initializeFirestore(firebaseApp, {
+      experimentalForceLongPolling: true,
+    }, dbId as any); // Some versions of the SDK might support this as an internal/undocumented 3rd param, but let's be safe
+  } else {
+    db = getFirestore(firebaseApp, dbId);
+  }
+
+  console.log("Firebase Initialized Successfully:", {
+    projectId: firebaseConfig.projectId,
+    databaseId: dbId || "(default)",
+    hasApiKey: !!firebaseConfig.apiKey
+  });
+} catch (error) {
+  console.error("CRITICAL: Firebase initialization failed:", error);
+}
 
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for now to allow external images easily
@@ -813,6 +850,9 @@ app.post("/api/admin/logout", (req, res) => {
 
 // Content Routes
 app.get("/api/content", async (req, res) => {
+  if (!db) {
+    return res.status(500).json({ error: "Firebase not initialized", details: "Database instance is missing. Check server logs for initialization errors." });
+  }
   const { type, category } = req.query;
   try {
     const snapshot = await getDocs(collection(db, "content"));
@@ -837,12 +877,16 @@ app.get("/api/content", async (req, res) => {
       return { ...i, created_at: createdAt };
     });
     res.json(items);
-  } catch (e) {
-    res.status(500).json({ error: "Failed to fetch content" });
+  } catch (e: any) {
+    console.error("Failed to fetch content:", e);
+    res.status(500).json({ error: "Failed to fetch content", details: e.message });
   }
 });
 
 app.get("/api/search", async (req, res) => {
+  if (!db) {
+    return res.status(500).json({ error: "Firebase not initialized", details: "Database instance is missing." });
+  }
   const { q } = req.query;
   if (!q || typeof q !== "string") return res.json([]);
   
@@ -882,12 +926,16 @@ app.get("/api/search", async (req, res) => {
     });
     
     res.json(results);
-  } catch (e) {
-    res.status(500).json({ error: "Search failed" });
+  } catch (e: any) {
+    console.error("Search failed:", e);
+    res.status(500).json({ error: "Search failed", details: e.message });
   }
 });
 
 app.get("/api/content/:id", async (req, res) => {
+  if (!db) {
+    return res.status(500).json({ error: "Firebase not initialized", details: "Database instance is missing." });
+  }
   try {
     const itemSnap = await getDoc(doc(db, "content", req.params.id));
     if (!itemSnap.exists()) return res.status(404).json({ error: "Not found" });
@@ -896,8 +944,9 @@ app.get("/api/content/:id", async (req, res) => {
       ...item, 
       created_at: item.created_at?.toDate ? item.created_at.toDate().toISOString() : (typeof item.created_at === 'string' ? item.created_at : null)
     });
-  } catch (e) {
-    res.status(500).json({ error: "Server error" });
+  } catch (e: any) {
+    console.error("Failed to fetch content detail:", e);
+    res.status(500).json({ error: "Server error", details: e.message });
   }
 });
 
@@ -906,6 +955,10 @@ app.get("/api/health", (req, res) => {
 });
 
 async function seedContent() {
+  if (!db) {
+    console.warn("Skipping seedContent: db not initialized");
+    return;
+  }
   try {
     const snapshot = await getDocs(collection(db, "content"));
     if (snapshot.empty) {
@@ -978,7 +1031,11 @@ async function seedContent() {
 }
 
 async function startServer() {
-  await seedContent();
+  // Skip seeding on Vercel to avoid overhead in serverless functions
+  if (process.env.VERCEL !== "1") {
+    await seedContent();
+  }
+  
   if (process.env.NODE_ENV !== "production") {
     const viteModule = "vite";
     const { createServer: createViteServer } = await import(/* @vite-ignore */ viteModule);

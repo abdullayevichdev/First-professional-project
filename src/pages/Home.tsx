@@ -39,7 +39,8 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
             }
           }
         } else {
-          setError(`Server error: ${res.status}`);
+          const errorData = await res.json().catch(() => ({}));
+          setError(`Server error: ${res.status}${errorData.details ? ` - ${errorData.details}` : ''}`);
         }
       } catch (error: any) {
         if (error.name === 'AbortError') {
