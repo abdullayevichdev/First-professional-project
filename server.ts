@@ -120,6 +120,23 @@ app.use(helmet({
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
+// Middleware to check if Firebase DB is initialized
+const checkDb = (req: any, res: any, next: any) => {
+  if (!db) {
+    return res.status(500).json({ 
+      error: "Firebase not initialized", 
+      details: "Database instance is missing. Check server logs for initialization errors." 
+    });
+  }
+  next();
+};
+
+// Apply db check to all /api routes except health
+app.use("/api", (req, res, next) => {
+  if (req.path === "/health") return next();
+  checkDb(req, res, next);
+});
+
 // Helper for JWT
 const generateToken = (userId: string) => {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "30d" });
@@ -850,9 +867,6 @@ app.post("/api/admin/logout", (req, res) => {
 
 // Content Routes
 app.get("/api/content", async (req, res) => {
-  if (!db) {
-    return res.status(500).json({ error: "Firebase not initialized", details: "Database instance is missing. Check server logs for initialization errors." });
-  }
   const { type, category } = req.query;
   try {
     const snapshot = await getDocs(collection(db, "content"));
@@ -884,9 +898,6 @@ app.get("/api/content", async (req, res) => {
 });
 
 app.get("/api/search", async (req, res) => {
-  if (!db) {
-    return res.status(500).json({ error: "Firebase not initialized", details: "Database instance is missing." });
-  }
   const { q } = req.query;
   if (!q || typeof q !== "string") return res.json([]);
   
@@ -933,9 +944,6 @@ app.get("/api/search", async (req, res) => {
 });
 
 app.get("/api/content/:id", async (req, res) => {
-  if (!db) {
-    return res.status(500).json({ error: "Firebase not initialized", details: "Database instance is missing." });
-  }
   try {
     const itemSnap = await getDoc(doc(db, "content", req.params.id));
     if (!itemSnap.exists()) return res.status(404).json({ error: "Not found" });
