@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
 import firebaseAppletConfig from '../../firebase-applet-config.json';
 
@@ -27,17 +27,12 @@ export const appleProvider = new OAuthProvider('apple.com');
 
 export const signInWithGoogle = async () => {
   if (!auth) throw new Error("Firebase is not configured. Please add environment variables.");
-  return signInWithRedirect(auth, googleProvider);
+  return signInWithPopup(auth, googleProvider);
 };
 
 export const signInWithApple = async () => {
   if (!auth) throw new Error("Firebase is not configured. Please add environment variables.");
-  return signInWithRedirect(auth, appleProvider);
-};
-
-export const handleRedirectResult = async () => {
-  if (!auth) return null;
-  return getRedirectResult(auth);
+  return signInWithPopup(auth, appleProvider);
 };
 
 export const logOut = async () => {

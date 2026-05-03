@@ -33,7 +33,7 @@ function AnimatedRoutes({ user }: { user: User | null }) {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/glossary" element={<Glossary />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin" element={<Admin user={user} />} />
         <Route path="/profile" element={<Profile user={user} />} />
         <Route path="/submit-article" element={<SubmitArticle user={user} />} />
         <Route path="/privacy" element={<Privacy />} />

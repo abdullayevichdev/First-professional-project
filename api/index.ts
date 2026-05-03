@@ -51,6 +51,11 @@ const getEnv = (key: string) => process.env[`VITE_${key}`] || process.env[key];
 
 const JWT_SECRET = getEnv('JWT_SECRET') || "tahqiq-super-secret-key-2026";
 
+const ADMIN_EMAILS = [
+  "mansur.ox7@gmail.com",
+  "abdulxayavazxanov2012@gmail.com"
+];
+
 // Firebase setup
 let firebaseConfig: any = {
   apiKey: getEnv('FIREBASE_API_KEY'),
@@ -169,7 +174,51 @@ const initializeFirebase = () => {
   }
 };
 
-// Initial attempt
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: null, // We are on server-side without a user object here easily, but we can check auth later if needed
+      email: null,
+      emailVerified: null,
+      isAnonymous: null,
+      tenantId: null,
+      providerInfo: []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// initial attempt
 initializeFirebase();
 
 // Middleware to check if Firebase DB is initialized
@@ -203,26 +252,9 @@ const checkDb = (req: any, res: any, next: any) => {
   next();
 };
 
-// Debug route
-app.get("/api/debug-firebase", (req, res) => {
-  res.json({
-    status: db ? "initialized" : "failed",
-    configFound,
-    configPaths,
-    cwd: process.cwd(),
-    dirname: __dirname,
-    hasApiKey: !!firebaseConfig.apiKey,
-    apiKeyLength: firebaseConfig.apiKey ? firebaseConfig.apiKey.length : 0,
-    projectId: firebaseConfig.projectId,
-    initError: initError ? initError.message : null,
-    appsCount: getApps().length,
-    env: {
-      NODE_ENV: process.env.NODE_ENV,
-      VERCEL: process.env.VERCEL,
-      HAS_VITE_API_KEY: !!process.env.VITE_FIREBASE_API_KEY,
-      HAS_FIREBASE_API_KEY: !!process.env.FIREBASE_API_KEY
-    }
-  });
+// Health status
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString(), db: db ? "connected" : "missing" });
 });
 
 // Apply db check to all /api routes except health
@@ -384,6 +416,13 @@ app.post("/api/auth/login", async (req, res) => {
       httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
+    // Check if admin
+    if (userData.email && ADMIN_EMAILS.includes(userData.email)) {
+      res.cookie("admin_token", "admin-secret-token", {
+        httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+    }
+
     res.json({ 
       success: true, 
       user: { 
@@ -397,6 +436,52 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Login failed" });
+  }
+});
+
+app.post("/api/auth/google", async (req, res) => {
+  const { email, name, picture, uid } = req.body;
+  if (!email || !uid) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+    
+    let userData;
+    if (!userSnap.exists()) {
+      userData = {
+        id: uid,
+        email,
+        name: name || email.split('@')[0],
+        picture: picture || "",
+        role: "user",
+        status: "active",
+        created_at: new Date().toISOString(),
+        last_login: new Date().toISOString()
+      };
+      await setDoc(userRef, userData);
+      await logActivity(uid, email, userData.name, "register", undefined, "Google orqali ro'yxatdan o'tdi");
+    } else {
+      userData = userSnap.data();
+      await updateDoc(userRef, { last_login: new Date().toISOString() });
+      await logActivity(uid, email, userData.name, "login", undefined, "Google orqali kirdi");
+    }
+
+    const token = generateToken(uid);
+    res.cookie("auth_token", token, {
+      httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    // Admin check
+    if (ADMIN_EMAILS.includes(email)) {
+      res.cookie("admin_token", "admin-secret-token", {
+        httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+    }
+
+    res.json({ success: true, user: userData });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -433,6 +518,7 @@ app.post("/api/auth/logout", (req, res) => {
     });
   }
   res.clearCookie("auth_token", { secure: true, sameSite: "none" });
+  res.clearCookie("admin_token", { secure: true, sameSite: "none" });
   res.json({ success: true });
 });
 
@@ -567,12 +653,35 @@ app.post("/api/admin/login", (req, res) => {
   }
 });
 
-const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (req.cookies.admin_token === "admin-secret-token") {
-    next();
-  } else {
-    res.status(403).json({ error: "Unauthorized access" });
+    return next();
   }
+  
+  // Alternative check: valid session token belonging to an admin email
+  const token = req.cookies.auth_token;
+  if (token) {
+    try {
+      const decoded: any = jwt.verify(token, JWT_SECRET);
+      if (decoded && decoded.userId) {
+        const userDoc = await getDoc(doc(db, "users", decoded.userId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData.email && ADMIN_EMAILS.includes(userData.email)) {
+            // Auto-set admin token if they are an admin but don't have it
+            res.cookie("admin_token", "admin-secret-token", {
+              httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
+            });
+            return next();
+          }
+        }
+      }
+    } catch (e) {
+      // Token invalid, ignore
+    }
+  }
+
+  res.status(403).json({ error: "Unauthorized access" });
 };
 
 // Real-time SSE endpoint for Admin Panel
@@ -986,8 +1095,12 @@ app.get("/api/content", async (req, res) => {
     });
     res.json(items);
   } catch (e: any) {
-    console.error("Failed to fetch content:", e);
-    res.status(500).json({ error: "Failed to fetch content", details: e.message });
+    console.error("Failed to fetch content error:", e);
+    try {
+      handleFirestoreError(e, OperationType.LIST, "content");
+    } catch (newError: any) {
+      res.status(500).json({ error: "Failed to fetch content", details: newError.message });
+    }
   }
 });
 
@@ -1033,7 +1146,11 @@ app.get("/api/search", async (req, res) => {
     res.json(results);
   } catch (e: any) {
     console.error("Search failed:", e);
-    res.status(500).json({ error: "Search failed", details: e.message });
+    try {
+      handleFirestoreError(e, OperationType.LIST, "content");
+    } catch (newError: any) {
+      res.status(500).json({ error: "Search failed", details: newError.message });
+    }
   }
 });
 
@@ -1048,12 +1165,12 @@ app.get("/api/content/:id", async (req, res) => {
     });
   } catch (e: any) {
     console.error("Failed to fetch content detail:", e);
-    res.status(500).json({ error: "Server error", details: e.message });
+    try {
+      handleFirestoreError(e, OperationType.GET, `content/${req.params.id}`);
+    } catch (newError: any) {
+      res.status(500).json({ error: "Server error", details: newError.message });
+    }
   }
-});
-
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 async function seedContent() {

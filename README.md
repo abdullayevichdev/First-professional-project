@@ -1,20 +1,47 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Tahqiq Application
 
-# Run and deploy your AI Studio app
+Ushbu loyiha Express + Vite (React) stackida qurilgan.
 
-This contains everything you need to run your app locally.
+## Vercel orqali deploy qilish
 
-View your app in AI Studio: https://ai.studio/apps/79cb7f75-19b3-4778-a100-f8534bac8957
+Saytni Vercel orqali deploy qilish uchun quyidagi qadamlarni bajaring:
 
-## Run Locally
+1.  Ushbu loyihani GitHub repozitoriyangizga yuklang.
+2.  Vercel boshqaruv panelida yangi loyiha yarating va repozitoriyani tanlang.
+3.  **Environment Variables** bo'limida quyidagi o'zgaruvchilarni sozlang (qiymatlarni o'zingizning Firebase loyihangizdan oling):
 
-**Prerequisites:**  Node.js
+    *   `VITE_JWT_SECRET`: Istalgan maxfiy kalit so'z.
+    *   `VITE_FIREBASE_API_KEY`
+    *   `VITE_FIREBASE_AUTH_DOMAIN`
+    *   `VITE_FIREBASE_PROJECT_ID`
+    *   `VITE_FIREBASE_STORAGE_BUCKET`
+    *   `VITE_FIREBASE_MESSAGING_SENDER_ID`
+    *   `VITE_FIREBASE_APP_ID`
+    *   `VITE_FIREBASE_MEASUREMENT_ID`
+    *   `FIREBASE_DATABASE_ID`: (Agar default bo'lmasa)
 
+4.  Deploy tugmasini bosing.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## "tahqiq.uz" domenini ulash
+
+1.  Vercel loyihangizga o'ting: **Settings > Domains**.
+2.  `tahqiq.uz` domenini kiriting va **Add** bosing.
+3.  Vercel ko'rsatgan DNS yozuvlarini (A record yoki CNAME) domen provayderingiz paneli orqali sozlang.
+
+## Maxsus serverga (VPS) joylashtirish
+
+Agar loyihani VPS serverga (Ubuntu/Debian) joylashtirmoqchi bo'lsangiz:
+
+1.  Serverga Node.js va npm o'rnating.
+2.  Kodlarni serverga ko'chiring.
+3.  `npm install` qiling.
+4.  `.env` faylini yarating va environment variablelarni kiriting.
+5.  `npm run build` orqali loyihani build qiling.
+6.  `pm2 start npm --name "tahqiq" -- run start` orqali serverni ishga tushiring.
+7.  Nginx oraqli 3000 portni `tahqiq.uz` domeniga yo'naltiring.
+
+## Admin panel
+
+Admin panelga kirish uchun quyidagi email manzillari huquqiga ega:
+*   mansur.ox7@gmail.com
+*   abdulxayavazxanov2012@gmail.com

@@ -6,7 +6,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
 import { PageWrapper } from '../components/PageWrapper';
-import { ContentItem, ArticleSubmission } from '../types';
+import { ContentItem, ArticleSubmission, User as UserType } from '../types';
 
 const parseDate = (dateString: string) => {
   if (!dateString) return new Date();
@@ -18,6 +18,8 @@ interface AdminUser {
   id: string;
   email: string;
   name: string;
+  username?: string;
+  phone?: string;
   picture: string;
   last_login: string;
   created_at: string;
@@ -35,12 +37,24 @@ interface AdminActivity {
   content_title?: string;
 }
 
-export const Admin: React.FC = () => {
+export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
+
+  const adminEmails = [
+    "mansur.ox7@gmail.com",
+    "abdulxayavazxanov2012@gmail.com"
+  ];
+
+  useEffect(() => {
+    if (user && user.email && adminEmails.includes(user.email)) {
+      setIsAuthenticated(true);
+    }
+  }, [user]);
+
   const [activeTab, setActiveTab] = useState<'users' | 'activity' | 'departed' | 'content' | 'newsletter' | 'messages' | 'submissions'>('users');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [activity, setActivity] = useState<AdminActivity[]>([]);
