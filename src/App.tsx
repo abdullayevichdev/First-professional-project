@@ -19,6 +19,7 @@ import { SubmitArticle } from './pages/SubmitArticle';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
 import { User } from './types';
+import { signInAnon } from './lib/firebase';
 
 function AnimatedRoutes({ user }: { user: User | null }) {
   const location = useLocation();
@@ -81,7 +82,16 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchUser();
+    const initAuth = async () => {
+      try {
+        await signInAnon();
+      } catch (e) {
+        console.warn("Anonymous sign-in on frontend failed (expected if offline or misconfigured):", e);
+      }
+      await fetchUser();
+    };
+    
+    initAuth();
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {

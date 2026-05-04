@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import helmet from "helmet";
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth, signInAnonymously } from "firebase/auth";
 import { 
   getFirestore, 
   collection, 
@@ -57,6 +58,11 @@ const ADMIN_EMAILS = [
 ];
 
 // Firebase setup
+let firebaseApp: any = null;
+let db: any = null;
+let auth: any = null;
+let initError: any = null;
+
 let firebaseConfig: any = {
   apiKey: getEnv('FIREBASE_API_KEY'),
   authDomain: getEnv('FIREBASE_AUTH_DOMAIN'),
@@ -110,11 +116,7 @@ if (!configFound && !firebaseConfig.apiKey) {
 }
 
 // Firebase initialization
-let db: any = null;
-let firebaseApp: any = null;
-let initError: any = null;
-
-const initializeFirebase = () => {
+const initializeFirebase = async () => {
   try {
     // If config is still missing, try loading it again (useful for serverless)
     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
@@ -131,6 +133,19 @@ const initializeFirebase = () => {
     // Initialize Firebase
     firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     const isNewApp = getApps().length === 1;
+    
+    // Auth Initialization
+    auth = getAuth(firebaseApp);
+    
+    // Anonymous Sign-in for Server (to satisfy security rules requiring auth)
+    try {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+        console.log("Server signed in anonymously");
+      }
+    } catch (authErr) {
+      console.error("Server anonymous sign-in failed:", authErr);
+    }
     
     const firestoreDatabaseId = getEnv('FIREBASE_DATABASE_ID');
     const dbId = (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined;
@@ -222,11 +237,11 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 initializeFirebase();
 
 // Middleware to check if Firebase DB is initialized
-const checkDb = (req: any, res: any, next: any) => {
+const checkDb = async (req: any, res: any, next: any) => {
   // If db is not initialized, try one more time (useful for serverless environments)
   if (!db) {
     console.log("DB is null, attempting re-initialization...");
-    initializeFirebase();
+    await initializeFirebase();
   }
 
   if (!db) {

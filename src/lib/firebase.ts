@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, signInAnonymously } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
 
 // On Vercel or production, these should be set via environment variables.
@@ -44,4 +44,9 @@ export const signInWithApple = async () => {
 export const logOut = async () => {
   if (!auth) return;
   return signOut(auth);
+};
+
+export const signInAnon = async () => {
+  if (!auth) throw new Error("Firebase is not configured.");
+  return signInAnonymously(auth);
 };
