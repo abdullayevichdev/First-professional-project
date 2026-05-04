@@ -64,6 +64,8 @@ export const Footer: React.FC = () => {
             © {new Date().getFullYear()} TAHQIQ.com — {t('footer.rights')}
           </p>
           <div className="flex flex-wrap items-center justify-center space-x-4 sm:space-x-8 text-[9px] sm:text-[10px] font-bold text-navy/30 dark:text-gold/20 uppercase tracking-[0.2em]">
+            <span className="text-gold/40">v2.1 Debug</span>
+            <span className="hidden sm:block w-1 h-1 bg-gold rounded-full"></span>
             <span>{t('footer.designed')}</span>
             <span className="hidden sm:block w-1 h-1 bg-gold rounded-full"></span>
             <span>{t('footer.global_edition')}</span>

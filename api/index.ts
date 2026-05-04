@@ -25,7 +25,8 @@ import {
   where,
   orderBy,
   limit,
-  onSnapshot
+  onSnapshot,
+  getDocFromServer
 } from "firebase/firestore";
 
 let __filename = '';
@@ -172,6 +173,15 @@ const initializeFirebase = async () => {
         isNewApp,
         configFound
       });
+
+      // Connection test (as recommended in instructions)
+      getDocFromServer(doc(db, 'test', 'connection')).catch(err => {
+        // We expect permission denied if path is not public, but 'offline' means config error
+        if (err.message && err.message.includes('the client is offline')) {
+           console.error("CRITICAL: Firebase connection test failed - CLIENT IS OFFLINE. Check API keys and network.");
+        }
+      });
+
       initError = null; // Clear any previous error
     } else {
       throw new Error("Firestore instance (db) is null after initialization attempt.");
@@ -219,12 +229,15 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: null, // We are on server-side without a user object here easily, but we can check auth later if needed
-      email: null,
-      emailVerified: null,
-      isAnonymous: null,
-      tenantId: null,
-      providerInfo: []
+      userId: auth?.currentUser?.uid || null,
+      email: auth?.currentUser?.email || null,
+      emailVerified: auth?.currentUser?.emailVerified || null,
+      isAnonymous: auth?.currentUser?.isAnonymous || null,
+      tenantId: auth?.currentUser?.tenantId || null,
+      providerInfo: auth?.currentUser?.providerData?.map((p: any) => ({
+        providerId: p.providerId,
+        email: p.email,
+      })) || []
     },
     operationType,
     path
@@ -273,6 +286,11 @@ app.get("/api/health", (req, res) => {
     status: "ok", 
     timestamp: new Date().toISOString(), 
     db: db ? "connected" : "missing",
+    auth: {
+      isLoggedIn: !!auth?.currentUser,
+      uid: auth?.currentUser?.uid || null,
+      isAnonymous: auth?.currentUser?.isAnonymous || false
+    },
     config: {
       projectId: firebaseConfig.projectId,
       databaseId: getEnv('FIREBASE_DATABASE_ID') || "(default)",
