@@ -7,6 +7,7 @@ import autoTable from 'jspdf-autotable';
 import { useTranslation } from 'react-i18next';
 import { PageWrapper } from '../components/PageWrapper';
 import { ContentItem, ArticleSubmission, User as UserType } from '../types';
+import { ADMIN_EMAILS } from '../constants';
 
 const parseDate = (dateString: string) => {
   if (!dateString) return new Date();
@@ -44,13 +45,8 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
-  const adminEmails = [
-    "mansur.ox7@gmail.com",
-    "abdulxayavazxanov2012@gmail.com"
-  ];
-
   useEffect(() => {
-    if (user && user.email && adminEmails.includes(user.email)) {
+    if (user && user.email && ADMIN_EMAILS.includes(user.email)) {
       setIsAuthenticated(true);
     }
   }, [user]);
