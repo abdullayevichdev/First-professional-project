@@ -18,9 +18,11 @@ Saytni Vercel orqali deploy qilish uchun quyidagi qadamlarni bajaring:
     *   `VITE_FIREBASE_MESSAGING_SENDER_ID`
     *   `VITE_FIREBASE_APP_ID`
     *   `VITE_FIREBASE_MEASUREMENT_ID`
-    *   `FIREBASE_DATABASE_ID`: (Agar default bo'lmasa)
+    *   `VITE_FIREBASE_DATABASE_ID`: **MUHIM!** Agar siz o'zingizning yangi Firebase loyihangizdan foydalanayotgan bo'lsangiz, buni bo'sh qoldiring yoki `(default)` deb yozing. AI Studio'dan nusxa ko'chirilgan uzun ID'ni qo'ymang.
 
-4.  Deploy tugmasini bosing.
+4.  **Firebase Security Rules** bo'limiga o'ting va loyihadagi `firestore.rules` fayli tarkibini paste qiling va **Publish** bosing.
+
+5.  Deploy tugmasini bosing.
 
 ## "tahqiq.uz" domenini ulash
 

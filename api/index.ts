@@ -254,7 +254,16 @@ const checkDb = (req: any, res: any, next: any) => {
 
 // Health status
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString(), db: db ? "connected" : "missing" });
+  res.json({ 
+    status: "ok", 
+    timestamp: new Date().toISOString(), 
+    db: db ? "connected" : "missing",
+    config: {
+      projectId: firebaseConfig.projectId,
+      databaseId: getEnv('FIREBASE_DATABASE_ID') || "(default)",
+      hasApiKey: !!firebaseConfig.apiKey
+    }
+  });
 });
 
 // Apply db check to all /api routes except health
@@ -1066,6 +1075,15 @@ app.delete("/api/admin/content/:id", requireAdmin, async (req, res) => {
 app.post("/api/admin/logout", (req, res) => {
   res.clearCookie("admin_token", { secure: true, sameSite: "none" });
   res.json({ success: true });
+});
+
+app.post("/api/admin/seed", requireAdmin, async (req, res) => {
+  try {
+    await seedContent();
+    res.json({ success: true, message: "Content seeded successfully" });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Content Routes

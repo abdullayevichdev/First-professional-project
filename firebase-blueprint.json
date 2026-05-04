@@ -1,100 +1,97 @@
 {
   "entities": {
-    "User": {
+    "user": {
       "title": "User",
-      "description": "User profile information",
+      "description": "System user",
       "type": "object",
       "properties": {
-        "uid": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "displayName": { "type": "string" },
-        "photoURL": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "user"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "username": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "last_login": { "type": "string", "format": "date-time" },
+        "created_at": { "type": "string", "format": "date-time" }
       },
-      "required": ["uid", "email"]
+      "required": ["id", "username", "role", "status"]
     },
-    "Content": {
+    "content": {
       "title": "Content",
-      "description": "Articles and media content",
+      "description": "Articles and news",
       "type": "object",
       "properties": {
+        "type": { "type": "string", "enum": ["article", "news", "speech"] },
+        "category": { "type": "string" },
+        "author": { "type": "string" },
         "title_uz": { "type": "string" },
         "title_ru": { "type": "string" },
         "title_en": { "type": "string" },
+        "excerpt_uz": { "type": "string" },
         "body_uz": { "type": "string" },
-        "body_ru": { "type": "string" },
-        "body_en": { "type": "string" },
-        "category": { "type": "string" },
         "image_url": { "type": "string" },
-        "video_url": { "type": "string" },
-        "author": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "created_at": { "type": "string", "format": "date-time" }
       }
     },
-    "Submission": {
-      "title": "Submission",
-      "description": "User submitted articles for review",
+    "activity": {
+      "title": "Activity Log",
+      "description": "User actions log",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "event_type": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "submission": {
+      "title": "Article Submission",
+      "description": "User submitted articles",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
-        "title": { "type": "string" },
-        "content": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "created_at": { "type": "string", "format": "date-time" }
       }
     },
-    "Notification": {
+    "notification": {
       "title": "Notification",
       "description": "User notifications",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
         "message": { "type": "string" },
-        "read": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Message": {
-      "title": "Message",
-      "description": "Contact form messages",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "subject": { "type": "string" },
-        "message": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Activity": {
-      "title": "Activity",
-      "description": "Admin activity logs",
-      "type": "object",
-      "properties": {
-        "adminId": { "type": "string" },
-        "action": { "type": "string" },
-        "details": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Newsletter": {
-      "title": "Newsletter",
-      "description": "Newsletter subscriptions",
-      "type": "object",
-      "properties": {
-        "email": { "type": "string", "format": "email" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "read": { "type": "boolean" }
       }
     }
   },
   "firestore": {
-    "users": { "schema": "User", "description": "User profiles" },
-    "content": { "schema": "Content", "description": "Published articles" },
-    "submissions": { "schema": "Submission", "description": "Article submissions" },
-    "notifications": { "schema": "Notification", "description": "User notifications" },
-    "messages": { "schema": "Message", "description": "Contact messages" },
-    "activity": { "schema": "Activity", "description": "Admin logs" },
-    "newsletter": { "schema": "Newsletter", "description": "Email subscriptions" }
+    "users": {
+      "schema": "user",
+      "description": "User profiles"
+    },
+    "content": {
+      "schema": "content",
+      "description": "Public content items"
+    },
+    "activity": {
+      "schema": "activity",
+      "description": "Admin activity logs"
+    },
+    "submissions": {
+      "schema": "submission",
+      "description": "User article submissions"
+    },
+    "notifications": {
+      "schema": "notification",
+      "description": "Targeted notifications"
+    },
+    "newsletter": {
+      "schema": { "type": "object", "properties": { "email": { "type": "string" } } },
+      "description": "Email subscribers"
+    },
+    "messages": {
+      "schema": { "type": "object", "properties": { "to": { "type": "string" }, "message": { "type": "string" } } },
+      "description": "Admin to user messages"
+    }
   }
 }

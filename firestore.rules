@@ -1,8 +1,90 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Default deny
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    
+    // Auth check for verified emails for admins
+    function isAdmin() { 
+      return isSignedIn() && 
+             request.auth.token.email_verified == true && 
+             request.auth.token.email in [
+               'mansur.ox7@gmail.com', 
+               'abdulxayavazxanov2012@gmail.com'
+             ];
+    }
+    
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'username', 'role', 'status']) &&
+             data.username is string && data.username.size() <= 100 &&
+             data.role in ['user', 'admin'] &&
+             data.status in ['active', 'suspended'];
+    }
+
+    function isValidContent(data) {
+      return data.type in ['article', 'news', 'speech'] &&
+             data.title_uz is string && data.title_uz.size() <= 500;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if true; 
+      allow list: if isAdmin();
+      allow create: if true; 
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'picture', 'phone', 'birthDate', 'saved_articles', 'last_login', 'password'])) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Content Collection (Public Read)
+    match /content/{contentId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidContent(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Activity Collection (Admin Only)
+    match /activity/{activityId} {
+      allow read: if isAdmin();
+      allow create: if true; // Allow logging from anywhere
+      allow update, delete: if false;
+    }
+
+    // Submissions
+    match /submissions/{subId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+    }
+
+    // Newsletter
+    match /newsletter/{subId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Messages
+    match /messages/{msgId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
     }
   }
 }
