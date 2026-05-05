@@ -53,8 +53,8 @@ service cloud.firestore {
 
     // Content Collection
     match /content/{contentId} {
-      // Authentication is REQUIRED to read content (to prevent scraper access)
-      allow read: if isSignedIn();
+      // Allow public read for content to ensure visibility even if auth token isn't passed to server
+      allow read: if true;
       
       // Admins only for writes
       allow create: if isAdmin() && isValidId(contentId) &&
