@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Global Safety Net - Default Deny
+    // 0. Global Safety Net
     match /{document=**} {
       allow read, write: if false;
     }
@@ -31,17 +31,20 @@ service cloud.firestore {
     // Users Collection
     match /users/{userId} {
       // Identity Protection: Users can only see their own profile or if they are admin
+      // Note: allow get is useful for public profiles if needed, but here we restrict
       allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isAdmin();
       
       // Creation: Strictly validated
       allow create: if isSignedIn() && request.auth.uid == userId && 
                     request.resource.data.keys().hasAll(['username', 'role', 'status']) &&
-                    request.resource.data.role == 'user';
+                    request.resource.data.role == 'user'; // Users can't create themselves as admin
                     
       // Update: Tiered permissions
       allow update: if isSignedIn() && (
+        // Tier 1: Admin can update anything except immutable fields
         isAdmin() ||
+        // Tier 2: User can update subset of fields
         (request.auth.uid == userId && 
          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
            'name', 'picture', 'phone', 'birthDate', 'saved_articles', 'last_login', 'password'
@@ -53,7 +56,7 @@ service cloud.firestore {
 
     // Content Collection
     match /content/{contentId} {
-      // Authentication is REQUIRED to read content (to prevent scraper access)
+      // REQUIREMENT 3: Authenticated Read
       allow read: if isSignedIn();
       
       // Admins only for writes
@@ -73,11 +76,10 @@ service cloud.firestore {
     // Notifications
     match /notifications/{notifId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isAdmin();
-      // Allow user to mark as read
-      allow update: if (isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid && 
-                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])));
-      allow delete: if isAdmin();
+      allow write: if isAdmin();
+      // Allow user to mark as read (update only specific field)
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && 
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
     }
 
     // Submissions
@@ -96,15 +98,8 @@ service cloud.firestore {
     // Activity Logs
     match /activity/{activityId} {
       allow read: if isAdmin();
-      allow create: if true; // Allow logging from any source
+      allow create: if true; // Allow logging
       allow update, delete: if false;
-    }
-
-    // Messages (Contact form/Chat)
-    match /messages/{msgId} {
-      allow read: if isAdmin();
-      allow create: if isSignedIn() || isAdmin(); 
-      allow update, delete: if isAdmin();
     }
   }
 }

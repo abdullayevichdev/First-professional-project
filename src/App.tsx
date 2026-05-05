@@ -48,9 +48,13 @@ function AnimatedRoutes({ user }: { user: User | null }) {
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [firebaseConfigMissing, setFirebaseConfigMissing] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
+    // Check if firebase is configured
+    const isConfigured = !!import.meta.env.VITE_FIREBASE_API_KEY && !!import.meta.env.VITE_FIREBASE_PROJECT_ID;
+    setFirebaseConfigMissing(!isConfigured);
   }, []);
 
   const fetchUser = async () => {
@@ -116,6 +120,11 @@ export default function App() {
       <Router>
         <Toaster position="top-right" />
         <div className="min-h-screen flex flex-col bg-white transition-colors duration-500">
+          {firebaseConfigMissing && import.meta.env.DEV && (
+            <div className="bg-amber-100 border-b border-amber-200 py-2 px-4 text-center text-amber-800 text-sm font-medium">
+              ⚠️ Firebase API kalitlari (VITE_FIREBASE_API_KEY) topilmadi. Settings menyusi orqali Environment Variables bo'limiga ularni kiriting.
+            </div>
+          )}
           <Header user={user} onLogout={handleLogout} onLoginSuccess={fetchUser} />
           <main className="flex-grow">
             {loading ? (

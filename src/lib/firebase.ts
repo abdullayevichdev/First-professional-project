@@ -17,7 +17,11 @@ const firebaseConfig = {
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
 
 // Helper to check if config is complete
-const isConfigured = !!firebaseConfig.apiKey;
+const isConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+
+if (!isConfigured && import.meta.env.DEV) {
+  console.warn("Firebase configuration is missing. Please add VITE_FIREBASE_API_KEY, etc. to your Environment Variables in Settings.");
+}
 
 // Initialize Firebase
 export const app = isConfigured ? initializeApp(firebaseConfig) : null;
@@ -27,6 +31,17 @@ export const db = app
     ? initializeFirestore(app, { experimentalForceLongPolling: true }, firestoreDatabaseId)
     : initializeFirestore(app, { experimentalForceLongPolling: true }))
   : null;
+
+// Automatic Anonymous Login
+if (auth && isConfigured) {
+  signInAnonymously(auth)
+    .then(() => {
+      console.log("Anonymous login success");
+    })
+    .catch((error) => {
+      console.error("Anonymous login error:", error);
+    });
+}
 
 export const googleProvider = new GoogleAuthProvider();
 export const appleProvider = new OAuthProvider('apple.com');
