@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Calendar, Phone, Mail, Edit3, Shield, Clock, Bell, Check, Eye, Bookmark, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { User, Calendar, Phone, Mail, Edit3, Shield, Clock, Bell, Check, Eye, Bookmark, FileText, CheckCircle, XCircle, LogOut } from 'lucide-react';
 import { User as UserType, Notification, ContentItem, ArticleSubmission } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
 
 interface ProfileProps {
   user: UserType | null;
+  onLogout: () => void;
 }
 
-export const Profile: React.FC<ProfileProps> = ({ user }) => {
+export const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -126,10 +127,21 @@ export const Profile: React.FC<ProfileProps> = ({ user }) => {
                 {user.name}
               </h1>
               {user.email && (
-                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-base truncate" title={user.email}>
+                <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-base truncate mb-6" title={user.email}>
                   {user.email}
                 </p>
               )}
+              
+              <button 
+                onClick={() => {
+                  onLogout();
+                  navigate('/');
+                }}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all border border-red-500/10"
+              >
+                <LogOut size={14} />
+                <span>{t('auth.logout', 'Chiqish')}</span>
+              </button>
             </div>
           </motion.div>
 

@@ -196,10 +196,10 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
           ) : (
             <button 
               onClick={() => setShowLoginModal(true)} 
-              className="flex btn-premium py-2 px-4 sm:py-3 sm:px-8 text-[9px] sm:text-[11px] shadow-none hover:shadow-gold/20 group relative overflow-hidden"
+              className="flex items-center justify-center space-x-2 bg-navy dark:bg-gold text-white dark:text-navy py-2.5 px-6 sm:py-3 sm:px-8 text-[11px] font-bold uppercase tracking-[0.15em] rounded-full hover:bg-gold dark:hover:bg-white hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-300 shadow-md hover:shadow-gold/30 group relative overflow-hidden"
             >
-              <User size={14} className="relative z-10 sm:size-[16px] group-hover:rotate-12 transition-transform duration-300" />
-              <span className="relative z-10 ml-1.5 sm:ml-2">{t('auth.login')}</span>
+              <User size={15} className="relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+              <span className="relative z-10">{t('auth.login')}</span>
             </button>
           )}
 

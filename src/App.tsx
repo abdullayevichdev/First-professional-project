@@ -22,7 +22,7 @@ import { User } from './types';
 import { auth, signInAnon } from './lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
 
-function AnimatedRoutes({ user }: { user: User | null }) {
+function AnimatedRoutes({ user, onLogout }: { user: User | null, onLogout: () => void }) {
   const location = useLocation();
 
   return (
@@ -36,7 +36,7 @@ function AnimatedRoutes({ user }: { user: User | null }) {
         <Route path="/contact" element={<Contact />} />
         <Route path="/glossary" element={<Glossary />} />
         <Route path="/admin" element={<Admin user={user} />} />
-        <Route path="/profile" element={<Profile user={user} />} />
+        <Route path="/profile" element={<Profile user={user} onLogout={onLogout} />} />
         <Route path="/submit-article" element={<SubmitArticle user={user} />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
@@ -154,7 +154,7 @@ export default function App() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
               </div>
             ) : (
-              <AnimatedRoutes user={user} />
+              <AnimatedRoutes user={user} onLogout={handleLogout} />
             )}
           </main>
           <Footer />
