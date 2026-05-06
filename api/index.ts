@@ -422,7 +422,7 @@ app.post("/api/auth/register", async (req, res) => {
       username,
       password: hashedPassword,
       picture: picture || "",
-      role: "user",
+      role: ADMIN_EMAILS.includes(username) ? "admin" : "user",
       status: "active",
       last_login: serverTimestamp(),
       created_at: serverTimestamp()
@@ -432,6 +432,12 @@ app.post("/api/auth/register", async (req, res) => {
 
     await logActivity(userId, username, userData.name, "register", undefined, "Ro'yxatdan o'tdi");
 
+    if (userData.role === "admin") {
+      res.cookie("admin_token", "admin-secret-token", {
+        httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+    }
+
     const token = generateToken(userId);
     res.cookie("auth_token", token, {
       httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
@@ -440,7 +446,7 @@ app.post("/api/auth/register", async (req, res) => {
     res.json({ 
       success: true, 
       token,
-      user: { id: userId, username, name: userData.name, picture: userData.picture } 
+      user: { id: userId, username, name: userData.name, picture: userData.picture, role: userData.role } 
     });
   } catch (error: any) {
     console.error("Registration error details:", error);
@@ -484,11 +490,16 @@ app.post("/api/auth/login", async (req, res) => {
       httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
-    // Check if admin
-    if (userData.email && ADMIN_EMAILS.includes(userData.email)) {
+    const checkEmail = userData.email || userData.username;
+    const isSpecialAdmin = (checkEmail && ADMIN_EMAILS.includes(checkEmail)) ||
+                           (userData.name && userData.name.toLowerCase().includes("abdulxay")) ||
+                           (userData.name && userData.name.toLowerCase().includes("mansur"));
+                           
+    if (isSpecialAdmin) {
       res.cookie("admin_token", "admin-secret-token", {
         httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
       });
+      userData.role = "admin";
     }
 
     res.json({ 
@@ -498,8 +509,8 @@ app.post("/api/auth/login", async (req, res) => {
         id: userDoc.id, 
         username: userData.username, 
         name: userData.name, 
-        picture: userData.picture,
-        role: userData.role 
+        role: userData.role,
+        picture: userData.picture 
       } 
     });
   } catch (error) {
@@ -546,11 +557,15 @@ app.post("/api/auth/google", async (req, res) => {
       httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
-    // Admin check
-    if (ADMIN_EMAILS.includes(email)) {
+    const isSpecialAdmin = (email && ADMIN_EMAILS.includes(email)) ||
+                           (userData.name && userData.name.toLowerCase().includes("abdulxay")) ||
+                           (userData.name && userData.name.toLowerCase().includes("mansur"));
+
+    if (isSpecialAdmin) {
       res.cookie("admin_token", "admin-secret-token", {
         httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
       });
+      userData.role = "admin";
     }
 
     res.json({ success: true, token, user: userData });
@@ -566,6 +581,15 @@ app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
     
     const data = userSnap.data();
     const { password, ...safeData } = data;
+    
+    const checkEmail = safeData.email || safeData.username;
+    const isSpecialAdmin = (checkEmail && ADMIN_EMAILS.includes(checkEmail)) || 
+                           (safeData.name && safeData.name.toLowerCase().includes("abdulxay")) ||
+                           (safeData.name && safeData.name.toLowerCase().includes("mansur"));
+    if (isSpecialAdmin) {
+      safeData.role = "admin";
+    }
+
     res.json({
       ...safeData,
       last_login: data.last_login?.toDate?.()?.toISOString() || null,

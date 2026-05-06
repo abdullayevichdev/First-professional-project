@@ -183,6 +183,12 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
           
           {user ? (
             <div className="flex items-center space-x-3 sm:space-x-6">
+              {user.role === 'admin' && (
+                <Link to="/admin" className="flex items-center justify-center space-x-1.5 p-2 px-3 lg:py-2.5 lg:px-4 rounded-full border border-navy/10 dark:border-gold/20 text-navy dark:text-gold hover:bg-navy/5 dark:hover:bg-gold/10 transition-all duration-300">
+                  <Lock size={16} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">Admin</span>
+                </Link>
+              )}
               <div className="hidden md:flex flex-col items-end">
                 <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-navy/40 dark:text-gold/30">{t('common.member')}</span>
                 <span className="text-xs font-bold text-navy dark:text-white">{user.name}</span>
@@ -196,9 +202,9 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
           ) : (
             <button 
               onClick={() => setShowLoginModal(true)} 
-              className="flex items-center justify-center space-x-2 bg-navy dark:bg-gold text-white dark:text-navy py-2.5 px-6 sm:py-3 sm:px-8 text-[11px] font-bold uppercase tracking-[0.15em] rounded-full hover:bg-gold dark:hover:bg-white hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-300 shadow-md hover:shadow-gold/30 group relative overflow-hidden"
+              className="flex items-center justify-center space-x-2 bg-navy dark:bg-gold text-white dark:text-navy py-2 px-5 sm:py-2.5 sm:px-7 text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.1em] sm:tracking-[0.15em] rounded-full hover:bg-gold dark:hover:bg-white hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-300 shadow-sm hover:shadow-gold/30 group relative overflow-hidden"
             >
-              <User size={15} className="relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+              <User size={16} className="relative z-10 group-hover:rotate-12 transition-transform duration-300" />
               <span className="relative z-10">{t('auth.login')}</span>
             </button>
           )}

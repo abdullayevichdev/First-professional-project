@@ -5,6 +5,7 @@ import { X, User, Calendar, Phone, Camera, Loader2, Check, Mail, Lock, Eye, EyeO
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { signInWithGoogle } from '../lib/firebase';
+import { toast } from 'react-hot-toast';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -59,29 +60,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     let newValue = value;
 
     if (name === 'phone') {
-      // Remove all non-digits
-      const digits = value.replace(/\D/g, '');
-      
-      // Format as +998 XX XXX XX XX
-      if (digits.length <= 12) {
-        let formatted = '+';
-        // Ensure it starts with 998 if it's not empty
-        const d = digits.startsWith('998') ? digits : (digits.length > 0 ? '998' + digits : '');
-        
-        if (d.length > 0) {
-          formatted += d.substring(0, 3); // 998
-          if (d.length > 3) formatted += ' ' + d.substring(3, 5); // XX
-          if (d.length > 5) formatted += ' ' + d.substring(5, 8); // XXX
-          if (d.length > 8) formatted += ' ' + d.substring(8, 10); // XX
-          if (d.length > 10) formatted += ' ' + d.substring(10, 12); // XX
-          newValue = formatted;
-        } else {
-          newValue = '';
-        }
-      } else {
-        // Don't allow more than 12 digits
-        return;
-      }
+      // Allow user to freely type and delete, just keep digits and + sign
+      const allowed = value.replace(/[^\d+ ()-]/g, '');
+      setFormData(prev => ({ ...prev, [name]: allowed }));
+      if (error) setError(null);
+      return;
     }
 
     setFormData(prev => ({ ...prev, [name]: newValue }));
@@ -92,9 +75,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     e.preventDefault();
     setError(null);
 
-    if (mode === 'register' && formData.password !== formData.confirmPassword) {
-      setError('Parollar mos kelmadi');
-      return;
+    // Basic validation
+    if (mode === 'register') {
+      if (formData.password.length < 6) {
+        setError('Parol eng kamida 6ta belgidan iborat bo\'lishi kerak');
+        toast.error('Parol juda qisqa');
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Parollar mos kelmadi');
+        toast.error('Parollar mos kelmadi');
+        return;
+      }
     }
 
     setLoading(true);
@@ -113,14 +105,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         if (data.token) {
           localStorage.setItem('auth_token', data.token);
         }
+        
+        toast.success(mode === 'login' ? 'Tizimga kirdingiz!' : 'Muvaffaqiyatli ro\'yxatdan o\'tdingiz!');
+        
+        // Reset form
+        setFormData({ phone: '', username: '', password: '', confirmPassword: '' });
+        
         onSuccess(data.user);
         onClose();
       } else {
-        setError(data.error || 'Xatolik yuz berdi');
+        const errorMsg = data.error || 'Autentifikatsiya xatosi';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setError('Server bilan bog\'lanishda xatolik');
+      const errTxt = 'Server bilan bog\'lanishda xatolik yuz berdi';
+      setError(errTxt);
+      toast.error(errTxt);
     } finally {
       setLoading(false);
     }
@@ -252,104 +254,108 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Login</label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Login</label>
                     <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} strokeWidth={1.5} />
                       <input
                         required
+                        disabled={loading}
                         type="text"
                         name="username"
                         value={formData.username}
                         onChange={handleInputChange}
                         placeholder="foydalanuvchinomi@example.com"
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-navy dark:text-white transition-all font-medium text-xs"
+                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold focus:bg-white outline-none rounded-2xl text-navy dark:text-white transition-all font-medium text-[13px] disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-400"
                       />
                     </div>
                   </div>
 
                   {mode === 'register' && (
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Telefon</label>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Telefon</label>
                       <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} strokeWidth={1.5} />
                         <input
                           required
+                          disabled={loading}
                           type="tel"
                           name="phone"
                           value={formData.phone}
                           onChange={handleInputChange}
-                          placeholder="+998 90 123 45 67"
-                          className="w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-navy dark:text-white transition-all font-medium text-xs"
+                          placeholder="+998 99"
+                          className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold focus:bg-white outline-none rounded-2xl text-navy dark:text-white transition-all font-medium text-[13px] disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-400"
                         />
                       </div>
                     </div>
                   )}
 
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Parol</label>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Parol</label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} strokeWidth={1.5} />
                       <input
                         required
+                        disabled={loading}
                         type={showPassword ? "text" : "password"}
                         name="password"
                         value={formData.password}
                         onChange={handleInputChange}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-navy dark:text-white transition-all font-medium text-xs"
+                        className="w-full pl-12 pr-12 py-3.5 bg-gray-50/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold focus:bg-white outline-none rounded-2xl text-navy dark:text-white transition-all font-medium text-[13px] disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-400"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gold transition-colors"
                       >
-                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                        {showPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
                       </button>
                     </div>
                   </div>
 
                   {mode === 'register' && (
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest ml-1">Parolni tasdiqlash</label>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Parolni tasdiqlash</label>
                       <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} strokeWidth={1.5} />
                         <input
                           required
+                          disabled={loading}
                           type={showPassword ? "text" : "password"}
                           name="confirmPassword"
                           value={formData.confirmPassword}
                           onChange={handleInputChange}
                           placeholder="••••••••"
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold outline-none rounded-xl text-navy dark:text-white transition-all font-medium text-xs"
+                          className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold focus:bg-white outline-none rounded-2xl text-navy dark:text-white transition-all font-medium text-[13px] disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-400"
                         />
                       </div>
                     </div>
                   )}
 
-                  <div className="pt-4 space-y-4">
+                  <div className="pt-6 space-y-4">
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-4 bg-gold hover:bg-gold/90 text-navy font-bold rounded-xl shadow-xl shadow-gold/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                      className="w-full py-4 bg-[#C6A861] hover:bg-[#b59853] text-navy font-bold rounded-2xl shadow-lg shadow-gold/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
                     >
                       {loading ? (
-                        <Loader2 className="animate-spin" size={18} />
+                        <Loader2 className="animate-spin" size={20} />
                       ) : (
                         <>
-                          <span className="uppercase tracking-[0.2em] text-[10px]">
+                          <span className="uppercase tracking-[0.15em] text-[11px] font-bold">
                             {mode === 'login' ? 'Kirish' : "Ro'yxatdan o'tish"}
                           </span>
-                          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                          <ArrowRight size={18} strokeWidth={2} className="group-hover:translate-x-1.5 transition-transform" />
                         </>
                       )}
                     </button>
 
-                    <div className="relative py-2">
+                    <div className="relative py-1">
                       <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-100 dark:border-white/5"></div>
+                        <div className="w-full border-t border-gray-200 dark:border-white/10"></div>
                       </div>
-                      <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-bold">
+                      <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em] font-bold">
                         <span className="px-4 bg-white dark:bg-[#0A0A0B] text-gray-400">Yoki</span>
                       </div>
                     </div>
@@ -358,9 +364,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                       type="button"
                       disabled={loading}
                       onClick={handleGoogleLogin}
-                      className="w-full py-3.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-gold dark:hover:border-gold/50 text-navy dark:text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3 group"
+                      className="w-full py-3.5 bg-white dark:bg-white/5 border-2 border-gray-100 dark:border-white/10 hover:border-gray-200 dark:hover:border-gold/50 text-navy dark:text-white font-bold rounded-2xl shadow-sm transition-all flex items-center justify-center gap-3 group"
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 ml-1" viewBox="0 0 24 24">
                         <path
                           fill="currentColor"
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -378,7 +384,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                       </svg>
-                      <span className="uppercase tracking-[0.2em] text-[10px]">Google orqali kirish</span>
+                      <span className="uppercase tracking-[0.1em] text-[11px] font-bold text-gray-700 dark:text-gray-200">Google orqali kirish</span>
                     </button>
                   </div>
 
