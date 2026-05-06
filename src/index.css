@@ -19,16 +19,24 @@
 }
 
 @layer base {
+  html {
+    /* Fluid scale - smoother font scaling across devices */
+    font-size: 16px;
+  }
+  @media (min-width: 1280px) {
+    html { font-size: 18px; }
+  }
+  
   body {
-    @apply font-sans text-ink bg-white antialiased transition-colors duration-500 min-h-screen;
+    @apply font-sans text-ink bg-white antialiased transition-colors duration-500 min-h-screen selection:bg-gold/30;
   }
   
   .dark body {
-    @apply bg-dark-bg text-gray-200;
+    @apply bg-dark-bg text-gray-200 selection:bg-gold/20;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif tracking-tight text-navy transition-colors duration-500;
+    @apply font-serif tracking-tight text-navy transition-colors duration-500 leading-[1.1];
   }
   
   .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
@@ -38,11 +46,11 @@
 
 /* Luxury Newsroom Specific Styles */
 .news-container {
-  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  @apply max-w-7xl mx-auto px-5 sm:px-8 lg:px-12;
 }
 
 .section-title {
-  @apply font-serif text-xl sm:text-2xl font-bold text-navy dark:text-white uppercase tracking-widest border-b border-navy/10 dark:border-gold/10 pb-3 sm:pb-4 mb-6 sm:mb-8 flex items-center justify-between transition-all duration-500;
+  @apply font-serif text-lg sm:text-xl lg:text-2xl font-bold text-navy dark:text-white uppercase tracking-[0.2em] border-b border-navy/10 dark:border-gold/10 pb-4 mb-8 sm:mb-12 flex items-center justify-between transition-all duration-500;
 }
 
 .section-title::after {
@@ -55,11 +63,11 @@
 }
 
 .btn-premium {
-  @apply bg-navy dark:bg-gold text-white dark:text-navy px-6 py-3 sm:px-8 sm:py-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] hover:bg-gold dark:hover:bg-white hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-500 inline-flex items-center justify-center space-x-2 sm:space-x-3 rounded-full shadow-xl hover:shadow-gold/40 border border-transparent whitespace-nowrap;
+  @apply bg-navy dark:bg-gold text-white dark:text-navy px-8 py-4 sm:px-10 sm:py-5 text-[11px] sm:text-[12px] font-bold uppercase tracking-[0.3em] hover:bg-gold dark:hover:bg-white hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-500 inline-flex items-center justify-center space-x-3 sm:space-x-4 rounded-full shadow-2xl hover:shadow-gold/40 border border-transparent whitespace-nowrap;
 }
 
 .btn-secondary {
-  @apply bg-transparent border border-navy/20 dark:border-gold/30 text-navy dark:text-gold px-6 py-3 sm:px-8 sm:py-4 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] hover:bg-navy dark:hover:bg-gold hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-500 inline-flex items-center justify-center space-x-2 sm:space-x-3 rounded-full whitespace-nowrap;
+  @apply bg-transparent border border-navy/20 dark:border-gold/30 text-navy dark:text-gold px-8 py-4 sm:px-10 sm:py-5 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-navy dark:hover:bg-gold hover:text-white dark:hover:text-navy active:scale-95 transition-all duration-500 inline-flex items-center justify-center space-x-3 sm:space-x-4 rounded-full whitespace-nowrap;
 }
 
 .sidebar-card {

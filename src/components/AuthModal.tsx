@@ -14,12 +14,21 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (user: any) => void;
+  initialMode?: AuthMode;
 }
 
 type AuthMode = 'login' | 'register';
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [mode, setMode] = useState<AuthMode>('login');
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initialMode = 'login' }) => {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
+
+  // Sync mode with initialMode when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +110,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       const data = await res.json();
       
       if (res.ok) {
+        if (data.token) {
+          localStorage.setItem('auth_token', data.token);
+        }
         onSuccess(data.user);
         onClose();
       } else {
@@ -139,6 +151,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       
       const data = await res.json();
       if (res.ok) {
+        if (data.token) {
+          localStorage.setItem('auth_token', data.token);
+        }
         onSuccess(data.user);
         onClose();
       } else {

@@ -6,6 +6,7 @@ import { Helmet } from 'react-helmet-async';
 import { ArrowRight, Youtube, BookOpen, MessageSquare, Lock } from 'lucide-react';
 import { ContentItem, User } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
+import { db, collection, query, orderBy, onSnapshot } from '../lib/firebase';
 
 interface HomeProps {
   user: User | null;
@@ -16,61 +17,42 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
   const [content, setContent] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [errorDetails, setErrorDetails] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+    if (!db) {
+      setError("Firebase setup is incomplete.");
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const res = await fetch('/api/content', { 
-          credentials: 'include',
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            setContent(data);
-            if (data.length === 0) {
-              console.warn("No content found in database");
-            }
-          }
-        } else {
-          let errorData;
-          try {
-            errorData = await res.json();
-          } catch (e) {
-            const text = await res.text().catch(() => "No response body");
-            errorData = { 
-              isHtml: true, 
-              status: res.status,
-              body: text.substring(0, 2000),
-              error: "Server did not return JSON"
-            };
-          }
-          setErrorDetails(errorData);
-          let errorMsg = `Server error: ${res.status}`;
-          if (errorData.details) errorMsg += ` - ${errorData.details}`;
-          if (errorData.initError) errorMsg += ` (Init Error: ${errorData.initError})`;
-          if (errorData.projectId) errorMsg += ` [Project: ${errorData.projectId}]`;
-          setError(errorMsg);
-        }
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-          setError("Ulanish vaqti tugadi (30s). Internetni tekshiring.");
-        } else {
-          console.error("Failed to fetch content:", error);
-          setError("Ma'lumotlar bazasiga ulanib bo'lmadi.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    // Set up real-time listener for content
+    const contentRef = collection(db, 'content');
+    const q = query(contentRef, orderBy('created_at', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items: ContentItem[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        items.push({
+          id: doc.id,
+          ...data,
+          // Ensure created_at is a string ISO date for the UI
+          created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : data.created_at || new Date().toISOString()
+        } as ContentItem);
+      });
+      setContent(items);
+      setLoading(false);
+      setError(null);
+    }, (err) => {
+      console.error("Content snapshot error:", err);
+      // If snapshot fails, it might be permissions or setup
+      setError("Ma'lumotlarni real-vaqtda yuklashda xatolik yuz berdi.");
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const getTitle = (item: ContentItem) => {
@@ -93,22 +75,6 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
         <div className="bg-red-500/20 border border-red-500 p-6 rounded-lg max-w-md text-center">
           <h2 className="text-xl font-bold mb-2">Ulanishda xatolik</h2>
           <p className="mb-4 opacity-80">{error}</p>
-          {errorDetails && (
-            <div className="text-xs text-left bg-black/30 p-4 rounded overflow-auto max-h-80 font-mono mb-4">
-              <p className="text-red-300 font-bold mb-2">Debug Ma'lumotlari:</p>
-              {errorDetails.isHtml ? (
-                <div className="whitespace-pre-wrap break-all">
-                  <p className="text-yellow-300 mb-1">Status: {errorDetails.status}</p>
-                  <p className="text-yellow-300 mb-1">Response is HTML (likely a server crash):</p>
-                  <div className="bg-white/10 p-2 rounded mt-1">
-                    {errorDetails.body}
-                  </div>
-                </div>
-              ) : (
-                <pre>{JSON.stringify(errorDetails, null, 2)}</pre>
-              )}
-            </div>
-          )}
           <div className="flex flex-col gap-3">
             <button 
               onClick={() => window.location.reload()}
@@ -178,47 +144,46 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
       {/* Hero Section */}
-      <section className="bg-white dark:bg-dark-card border-b border-navy/5 dark:border-gold/5 transition-colors duration-500">
+      <section className="bg-white dark:bg-dark-card border-b border-navy/5 dark:border-gold/5 transition-colors duration-500 overflow-hidden">
         <div className="news-container py-6 sm:py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-14">
             {/* Main Spotlight */}
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
               className="lg:col-span-8 group"
             >
               {featuredContent && (
                 <Link to={`/article/${featuredContent.id}`} className="block">
-                  <div className="relative aspect-[16/9] overflow-hidden mb-8 article-card shadow-2xl">
+                  <div className="relative aspect-[16/10] sm:aspect-[16/9] overflow-hidden mb-6 sm:mb-10 article-card shadow-2xl rounded-lg">
                     <img 
                       src={featuredContent.image_url || `https://picsum.photos/seed/${featuredContent.id}/1200/800`} 
                       alt={getTitle(featuredContent)} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-[2000ms] ease-out"
                       referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        if (target.src.includes('unsplash.com')) {
-                          target.src = `https://picsum.photos/seed/${featuredContent.id}/1200/800`;
-                        } else {
-                          target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200&h=800`;
-                        }
-                      }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/20 to-transparent opacity-60 dark:opacity-80"></div>
-                    <div className="absolute bottom-0 left-0 p-6 sm:p-10 w-full">
-                      <span className="inline-block bg-gold text-white dark:text-navy px-3 py-1 sm:px-4 sm:py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] mb-3 sm:mb-4 shadow-lg">{t('common.featured_analysis')}</span>
-                      <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-white leading-tight mb-3 sm:mb-4 group-hover:text-gold transition-colors duration-500">
+                    <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/60 to-transparent opacity-90"></div>
+                    <div className="absolute inset-0 p-6 sm:p-10 lg:p-14 flex flex-col justify-end">
+                      <motion.span 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="inline-block bg-gold text-navy px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] mb-4 shadow-2xl rounded-sm w-fit"
+                      >
+                        {t('common.featured_analysis')}
+                      </motion.span>
+                      <h2 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-black text-white leading-[1.1] mb-6 group-hover:text-gold transition-colors duration-500 max-w-4xl line-clamp-3">
                         {getTitle(featuredContent)}
                       </h2>
-                      <div className="flex items-center space-x-3 sm:space-x-4 text-white/60 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest">
-                        <span>{featuredContent.author}</span>
-                        <span className="w-1 h-1 bg-gold rounded-full"></span>
+                      <div className="flex items-center space-x-4 text-white/50 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em]">
+                        <span className="text-white/80">{featuredContent.author}</span>
+                        <span className="w-1.5 h-1.5 bg-gold rounded-full"></span>
                         <span>{new Date(featuredContent.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}</span>
                       </div>
                     </div>
                   </div>
-                  <p className="text-xl text-navy/70 dark:text-gray-300 font-serif italic leading-relaxed line-clamp-2 border-l-4 border-gold pl-6">
+                  <p className="text-lg sm:text-2xl text-navy/70 dark:text-gray-300 font-serif italic leading-relaxed line-clamp-3 border-l-4 border-gold pl-8 sm:pl-12 py-2">
                     {getExcerpt(featuredContent)}
                   </p>
                 </Link>
@@ -293,44 +258,44 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
       </section>
 
       {/* Main Content Sections */}
-      <main className="news-container py-12 sm:py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-16">
+      <main className="news-container py-6 sm:py-12 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12">
           {/* Left Column: Uzbekistan & Global */}
-          <div className="lg:col-span-8 space-y-16 sm:space-y-32">
+          <div className="lg:col-span-8 space-y-10 sm:space-y-20">
             {/* Uzbekistan Section */}
             <section>
-              <div className="flex items-center justify-between mb-8 sm:mb-12">
-                <h2 className="section-title flex-grow">{t('nav.uzb_politics')}</h2>
-                <Link to="/category/uzbekistan" className="btn-secondary py-2 px-4 sm:px-6 text-[8px] sm:text-[9px] ml-4 sm:ml-8">{t('common.view_archive')}</Link>
+              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-navy/5 dark:border-gold/10 pb-5 mb-8 sm:mb-12 gap-4">
+                <div className="relative">
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-serif font-black text-navy dark:text-white uppercase leading-tight tracking-tight">
+                    {t('nav.uzb_politics')}
+                  </h2>
+                  <div className="absolute -bottom-1 left-0 w-12 h-1 bg-gold"></div>
+                </div>
+                <Link to="/category/uzbekistan" className="group flex items-center space-x-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gold hover:text-navy dark:hover:text-white transition-all duration-300">
+                  <span>{t('common.view_archive')}</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
                 {uzbPolitics.map((item, idx) => (
                   <motion.article 
                     key={item.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-100px" }}
+                    viewport={{ once: true, margin: "-50px" }}
                     transition={{ delay: idx * 0.1 }}
                     className="group"
                   >
-                    <Link to={`/article/${item.id}`}>
-                      <div className="aspect-video overflow-hidden mb-4 sm:mb-6 article-card shadow-lg">
+                    <Link to={`/article/${item.id}`} className="block">
+                      <div className="aspect-[16/10] overflow-hidden mb-5 sm:mb-6 article-card shadow-sm group-hover:shadow-xl transition-all duration-500 rounded-sm">
                         <img 
                           src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} 
                           alt={getTitle(item)} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                          className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-1000 ease-out" 
                           referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (target.src.includes('unsplash.com')) {
-                              target.src = `https://picsum.photos/seed/${item.id}/600/400`;
-                            } else {
-                              target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
-                            }
-                          }}
                         />
                       </div>
-                      <h3 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white mb-3 sm:mb-4 group-hover:text-gold transition-colors leading-tight">
+                      <h3 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white mb-3 group-hover:text-gold transition-colors leading-tight">
                         {getTitle(item)}
                       </h3>
                       <p className="text-xs sm:text-sm text-navy/60 dark:text-gray-400 leading-relaxed line-clamp-3 font-light">
@@ -343,29 +308,47 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
             </section>
 
             {/* Featured Video Section */}
-            <section className="bg-white dark:bg-dark-card p-6 sm:p-12 article-card border border-navy/10 dark:border-gold/20 shadow-2xl text-navy dark:text-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
-                <div>
-                  <span className="text-[9px] sm:text-[10px] font-bold text-gold uppercase tracking-[0.4em] mb-4 sm:mb-6 block">{t('common.multimedia')}</span>
-                  <h2 className="text-2xl sm:text-3xl font-serif font-bold mb-4 sm:mb-6">{t('common.decoding_speeches')}</h2>
-                  <p className="text-navy/60 dark:text-white/60 text-xs sm:text-sm font-light leading-relaxed mb-6 sm:mb-10">
+            <section className="bg-white dark:bg-dark-card p-5 sm:p-10 lg:p-12 article-card border border-navy/5 dark:border-gold/10 shadow-2xl text-navy dark:text-white relative overflow-hidden group">
+              {/* Decorative background element */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 rounded-full -mr-16 -mt-16 transition-transform duration-700 group-hover:scale-150"></div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 sm:gap-14 items-center relative z-10">
+                <div className="flex flex-col justify-center items-start">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-[1px] bg-gold"></div>
+                    <span className="text-[9px] font-bold text-gold uppercase tracking-[0.4em]">{t('common.multimedia')}</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black mb-4 sm:mb-6 leading-tight max-w-md">
+                    {t('common.decoding_speeches')}
+                  </h2>
+                  <p className="text-navy/60 dark:text-white/60 text-sm sm:text-base font-light leading-relaxed mb-8 max-w-sm">
                     {t('common.decoding_desc')}
                   </p>
-                  <a href="https://youtube.com/@TAHQIQ_OFFICIAL" target="_blank" rel="noreferrer" className="btn-premium inline-flex py-3 px-6 sm:py-4 sm:px-8">
-                    <Youtube size={16} className="sm:w-[18px] sm:h-[18px]" />
-                    <span>{t('common.watch_analysis')}</span>
+                  <a 
+                    href="https://youtube.com/@TAHQIQ_OFFICIAL" 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="btn-premium py-3 px-7 sm:py-3.5 sm:px-9 text-[10px] w-fit flex items-center justify-center -ml-1 sm:-ml-2 group/btn relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
+                    <Youtube size={16} className="mr-3 relative z-10" />
+                    <span className="relative z-10">{t('common.watch_analysis')}</span>
                   </a>
                 </div>
-                <a href="https://youtube.com/@TAHQIQ_OFFICIAL" target="_blank" rel="noreferrer" className="relative aspect-video article-card overflow-hidden group block">
+                <a href="https://youtube.com/@TAHQIQ_OFFICIAL" target="_blank" rel="noreferrer" className="relative aspect-video rounded-lg overflow-hidden group/vid block shadow-2xl-gold">
                   <img 
                     src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=800&h=450" 
                     alt="Video" 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-90 dark:opacity-60" 
+                    className="w-full h-full object-cover group-hover/vid:scale-110 transition-transform duration-1000 opacity-95 dark:opacity-80" 
                     referrerPolicy="no-referrer" 
                   />
+                  <div className="absolute inset-0 bg-navy/20 group-hover/vid:bg-navy/0 transition-colors duration-500"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 bg-gold rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                      <Youtube size={40} className="text-white dark:text-navy ml-1" />
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gold/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl group-hover/vid:scale-110 group-hover/vid:bg-gold transition-all duration-300">
+                      <div className="relative">
+                        <Youtube size={32} className="text-white dark:text-navy ml-1" />
+                        <div className="absolute -inset-4 bg-white/20 rounded-full animate-ping opacity-0 group-hover/vid:opacity-100"></div>
+                      </div>
                     </div>
                   </div>
                 </a>
@@ -374,39 +357,39 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
 
             {/* Global Section */}
             <section>
-              <div className="flex items-center justify-between mb-8 sm:mb-12">
-                <h2 className="section-title flex-grow">{t('nav.global_politics')}</h2>
-                <Link to="/category/global" className="btn-secondary py-2 px-4 sm:px-6 text-[8px] sm:text-[9px] ml-4 sm:ml-8">{t('common.view_archive')}</Link>
+              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-navy/5 dark:border-gold/10 pb-5 mb-8 sm:mb-12 gap-4">
+                <div className="relative">
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-serif font-black text-navy dark:text-white uppercase leading-tight tracking-tight">
+                    {t('nav.global_politics')}
+                  </h2>
+                  <div className="absolute -bottom-1 left-0 w-12 h-1 bg-gold"></div>
+                </div>
+                <Link to="/category/global" className="group flex items-center space-x-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gold hover:text-navy dark:hover:text-white transition-all duration-300">
+                  <span>{t('common.view_archive')}</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </Link>
               </div>
-              <div className="space-y-8 sm:space-y-12">
+              <div className="space-y-6 sm:space-y-10">
                 {globalPolitics.map((item, idx) => (
                   <motion.article 
                     key={item.id}
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: -15 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-100px" }}
                     className="group"
                   >
-                    <Link to={`/article/${item.id}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-10 items-center">
-                      <div className="md:col-span-5 aspect-video overflow-hidden article-card shadow-lg">
+                    <Link to={`/article/${item.id}`} className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 items-center border-b border-navy/5 dark:border-white/5 pb-6 sm:pb-10 last:border-0 last:pb-0">
+                      <div className="md:col-span-5 aspect-video overflow-hidden rounded-sm shadow-sm">
                         <img 
                           src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} 
                           alt={getTitle(item)} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                           referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (target.src.includes('unsplash.com')) {
-                              target.src = `https://picsum.photos/seed/${item.id}/600/400`;
-                            } else {
-                              target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600&h=400`;
-                            }
-                          }}
                         />
                       </div>
                       <div className="md:col-span-7">
-                        <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] text-gold mb-2 sm:mb-3 block">{t('common.international_relations')}</span>
-                        <h3 className="text-xl sm:text-2xl font-serif font-bold text-navy dark:text-white mb-3 sm:mb-4 group-hover:text-gold transition-colors leading-tight">
+                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-gold mb-2 block">{t('common.international_relations')}</span>
+                        <h3 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white mb-2 sm:mb-3 group-hover:text-gold transition-colors leading-tight">
                           {getTitle(item)}
                         </h3>
                         <p className="text-xs sm:text-sm text-navy/60 dark:text-gray-400 leading-relaxed line-clamp-2 font-light">
@@ -421,38 +404,38 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
 
             {/* Historical Context Section */}
             <section>
-              <div className="flex items-center justify-between mb-8 sm:mb-12">
-                <h2 className="section-title flex-grow">{t('common.historical_context')}</h2>
-                <Link to="/category/historical" className="btn-secondary py-2 px-4 sm:px-6 text-[8px] sm:text-[9px] ml-4 sm:ml-8">{t('common.view_archive')}</Link>
+              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-navy/5 dark:border-gold/10 pb-5 mb-8 sm:mb-12 gap-4">
+                <div className="relative">
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-serif font-black text-navy dark:text-white uppercase leading-tight tracking-tight">
+                    {t('common.historical_context')}
+                  </h2>
+                  <div className="absolute -bottom-1 left-0 w-12 h-1 bg-gold"></div>
+                </div>
+                <Link to="/category/historical" className="group flex items-center space-x-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gold hover:text-navy dark:hover:text-white transition-all duration-300">
+                  <span>{t('common.view_archive')}</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </Link>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-8">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 sm:gap-10">
                 {historicalAnalysis.map((item, idx) => (
                   <motion.article 
                     key={item.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-50px" }}
                     transition={{ delay: idx * 0.1 }}
                     className="group"
                   >
                     <Link to={`/article/${item.id}`}>
-                      <div className="aspect-square overflow-hidden mb-3 sm:mb-6 article-card shadow-md">
+                      <div className="aspect-square overflow-hidden mb-3 sm:mb-5 rounded-sm shadow-md group-hover:shadow-xl transition-all duration-500">
                         <img 
                           src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} 
                           alt={getTitle(item)} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
                           referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (target.src.includes('unsplash.com')) {
-                              target.src = `https://picsum.photos/seed/${item.id}/400/400`;
-                            } else {
-                              target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400&h=400`;
-                            }
-                          }}
                         />
                       </div>
-                      <h3 className="text-sm sm:text-lg font-serif font-bold text-navy dark:text-white mb-2 group-hover:text-gold transition-colors leading-tight line-clamp-2">
+                      <h3 className="text-sm sm:text-base font-serif font-bold text-navy dark:text-white mb-2 group-hover:text-gold transition-colors leading-tight line-clamp-2 uppercase tracking-tight text-center">
                         {getTitle(item)}
                       </h3>
                     </Link>

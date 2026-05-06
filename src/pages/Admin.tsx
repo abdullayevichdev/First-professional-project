@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { PageWrapper } from '../components/PageWrapper';
 import { ContentItem, ArticleSubmission, User as UserType } from '../types';
 import { ADMIN_EMAILS } from '../constants';
+import { db, collection, onSnapshot, query, orderBy, limit } from '../lib/firebase';
 
 const parseDate = (dateString: string) => {
   if (!dateString) return new Date();
@@ -88,93 +89,84 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
 
 
   useEffect(() => {
-    let eventSource: EventSource | null = null;
-    
-    if (isAuthenticated) {
+    if (isAuthenticated && db) {
       setLoading(true);
-      eventSource = new EventSource('/api/admin/stream', { withCredentials: true });
       
-      eventSource.addEventListener('users', (e) => {
-        const data = JSON.parse(e.data);
-        if (Array.isArray(data)) setUsers(data);
+      // Real-time Users
+      const unsubUsers = onSnapshot(collection(db, "users"), (snap) => {
+        const userData = snap.docs.map(d => {
+          const data = d.data();
+          // Filter out passwords
+          const { password, ...safeData } = data;
+          return {
+            id: d.id,
+            ...safeData,
+            last_login: data.last_login?.toDate ? data.last_login.toDate().toISOString() : data.last_login || null,
+            created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : data.created_at || null
+          } as AdminUser;
+        });
+        setUsers(userData);
+        setLoading(false);
+      }, (err) => {
+        console.error("Users subscribe error:", err);
         setLoading(false);
       });
-      
-      eventSource.addEventListener('activity', (e) => {
-        const data = JSON.parse(e.data);
-        if (Array.isArray(data)) setActivity(data);
-      });
-      
-      eventSource.addEventListener('content', (e) => {
-        const data = JSON.parse(e.data);
-        if (Array.isArray(data)) setContentList(data);
-      });
-      
-      eventSource.addEventListener('newsletter', (e) => {
-        const data = JSON.parse(e.data);
-        if (Array.isArray(data)) setSubscribers(data);
-      });
-      
-      eventSource.addEventListener('messages', (e) => {
-        const data = JSON.parse(e.data);
-        if (Array.isArray(data)) setMessages(data);
+
+      // Real-time Activity
+      const activityQuery = query(collection(db, "activity"), orderBy("timestamp", "desc"), limit(100));
+      const unsubActivity = onSnapshot(activityQuery, (snap) => {
+        const activityData = snap.docs.map(d => {
+          const data = d.data();
+          return {
+            id: d.id as any,
+            ...data,
+            timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : data.timestamp || null
+          } as AdminActivity;
+        });
+        setActivity(activityData);
       });
 
-      eventSource.addEventListener('submissions', (e) => {
-        const data = JSON.parse(e.data);
-        if (Array.isArray(data)) setSubmissions(data);
+      // Real-time Content
+      const unsubContent = onSnapshot(collection(db, "content"), (snap) => {
+        const contentData = snap.docs.map(d => {
+          const data = d.data();
+          return {
+            id: d.id,
+            ...data,
+            created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : data.created_at || null
+          } as ContentItem;
+        });
+        setContentList(contentData);
       });
 
-      eventSource.onerror = (err) => {
-        console.error("SSE connection error", err);
-        // Fallback to manual fetch if SSE fails
-        fetchData(false);
+      // Real-time Subscribers
+      const unsubNewsletter = onSnapshot(collection(db, "newsletter"), (snap) => {
+        setSubscribers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+
+      // Real-time Messages
+      const unsubMessages = onSnapshot(collection(db, "messages"), (snap) => {
+        setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      });
+
+      // Real-time Submissions
+      const unsubSubmissions = onSnapshot(collection(db, "submissions"), (snap) => {
+        setSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() } as ArticleSubmission)));
+      });
+
+      return () => {
+        unsubUsers();
+        unsubActivity();
+        unsubContent();
+        unsubNewsletter();
+        unsubMessages();
+        unsubSubmissions();
       };
     }
-    
-    return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
-    };
   }, [isAuthenticated]);
 
-  const fetchData = async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    try {
-      const [usersRes, activityRes, contentRes, newsletterRes, messagesRes] = await Promise.all([
-        fetch('/api/admin/users', { credentials: 'include' }),
-        fetch('/api/admin/activity', { credentials: 'include' }),
-        fetch('/api/content'),
-        fetch('/api/admin/newsletter', { credentials: 'include' }),
-        fetch('/api/admin/messages', { credentials: 'include' })
-      ]);
-      
-      if (usersRes.ok) {
-        const data = await usersRes.json();
-        if (Array.isArray(data)) setUsers(data);
-      }
-      if (activityRes.ok) {
-        const data = await activityRes.json();
-        if (Array.isArray(data)) setActivity(data);
-      }
-      if (contentRes.ok) {
-        const data = await contentRes.json();
-        if (Array.isArray(data)) setContentList(data);
-      }
-      if (newsletterRes.ok) {
-        const data = await newsletterRes.json();
-        if (Array.isArray(data)) setSubscribers(data);
-      }
-      if (messagesRes.ok) {
-        const data = await messagesRes.json();
-        if (Array.isArray(data)) setMessages(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch data", err);
-    } finally {
-      if (showLoading) setLoading(false);
-    }
+  const fetchData = async () => {
+    // Real-time listeners automatically sync data.
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -248,7 +240,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
       
       if (res.ok) {
         alert('Yangi ma\'lumot muvaffaqiyatli qo\'shildi va foydalanuvchilarga xabar yuborildi!');
-        fetchData(false);
+        fetchData();
         setContentForm({
           type: 'article',
           category: 'uzbekistan',
@@ -285,7 +277,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
       });
       
       if (res.ok) {
-        fetchData(false);
+        fetchData();
         setDeleteConfirmId(null);
       } else {
         console.error('O\'chirishda xatolik');
@@ -311,7 +303,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
         alert(status === 'accepted' ? 'Maqola qabul qilindi va saytga joylashtirildi!' : 'Maqola rad etildi.');
         setSelectedSubmission(null);
         setFeedbackText('');
-        fetchData(false);
+        fetchData();
       } else {
         alert('Xatolik yuz berdi');
       }
@@ -333,7 +325,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
       if (res.ok) {
         setDeleteSubmissionConfirmId(null);
         setSelectedSubmission(null);
-        fetchData(false);
+        fetchData();
       } else {
         console.error("O'chirishda xatolik yuz berdi");
       }

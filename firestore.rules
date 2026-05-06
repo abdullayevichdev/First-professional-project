@@ -12,6 +12,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
     // Admin check: Must be signed in, email verified, and in the whitelist
     function isAdmin() {
       return isSignedIn() && 
@@ -30,21 +38,17 @@ service cloud.firestore {
 
     // Users Collection
     match /users/{userId} {
-      // Identity Protection: Users can only see their own profile or if they are admin
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow list: if isAdmin();
+      // Creation: Allow any signed in user (including the server) to create user profiles
+      allow create: if isSignedIn();
+      allow list: if isSignedIn();
+      allow get: if true;
       
-      // Creation: Strictly validated
-      allow create: if isSignedIn() && request.auth.uid == userId && 
-                    request.resource.data.keys().hasAll(['username', 'role', 'status']) &&
-                    request.resource.data.role == 'user';
-                    
       // Update: Tiered permissions
       allow update: if isSignedIn() && (
         isAdmin() ||
         (request.auth.uid == userId && 
          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-           'name', 'picture', 'phone', 'birthDate', 'saved_articles', 'last_login', 'password'
+           'name', 'picture', 'phone', 'birthDate', 'saved_articles', 'last_login', 'password', 'firstName', 'lastName'
          ]))
       );
       

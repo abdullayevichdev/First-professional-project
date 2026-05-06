@@ -64,48 +64,30 @@ let db: any = null;
 let auth: any = null;
 let initError: any = null;
 
-let firebaseConfig: any = {
-  apiKey: getEnv('FIREBASE_API_KEY'),
-  authDomain: getEnv('FIREBASE_AUTH_DOMAIN'),
-  projectId: getEnv('FIREBASE_PROJECT_ID'),
-  storageBucket: getEnv('FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: getEnv('FIREBASE_MESSAGING_SENDER_ID'),
-  appId: getEnv('FIREBASE_APP_ID'),
-  measurementId: getEnv('FIREBASE_MEASUREMENT_ID')
-};
-
+let firebaseConfig: any = {};
 let configFound = false;
-let configPaths: string[] = [];
 
 const loadConfig = () => {
-  configPaths = [
-    path.join(process.cwd(), "firebase-applet-config.json"),
-    path.join(__dirname, "firebase-applet-config.json"),
-    path.join(__dirname, "..", "firebase-applet-config.json")
-  ];
-
-  for (const configPath of configPaths) {
-    if (fs.existsSync(configPath)) {
-      try {
-        const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-        firebaseConfig = {
-          apiKey: firebaseConfig.apiKey || localConfig.apiKey,
-          authDomain: firebaseConfig.authDomain || localConfig.authDomain,
-          projectId: firebaseConfig.projectId || localConfig.projectId,
-          storageBucket: firebaseConfig.storageBucket || localConfig.storageBucket,
-          messagingSenderId: firebaseConfig.messagingSenderId || localConfig.messagingSenderId,
-          appId: firebaseConfig.appId || localConfig.appId,
-          measurementId: firebaseConfig.measurementId || localConfig.measurementId
-        };
-        if (!getEnv('FIREBASE_DATABASE_ID') && localConfig.firestoreDatabaseId) {
-          process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
-        }
-        configFound = true;
-        console.log("Firebase config found at:", configPath);
-        break;
-      } catch (e) {
-        console.error("Failed to read firebase-applet-config.json at", configPath, e);
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    try {
+      const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      firebaseConfig = {
+        apiKey: localConfig.apiKey,
+        authDomain: localConfig.authDomain,
+        projectId: localConfig.projectId,
+        storageBucket: localConfig.storageBucket,
+        messagingSenderId: localConfig.messagingSenderId,
+        appId: localConfig.appId,
+        measurementId: localConfig.measurementId
+      };
+      if (localConfig.firestoreDatabaseId) {
+        process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
       }
+      configFound = true;
+      console.log("Firebase config loaded from JSON:", configPath);
+    } catch (e) {
+      console.error("Failed to read firebase-applet-config.json", e);
     }
   }
 };
@@ -117,87 +99,108 @@ if (!configFound && !firebaseConfig.apiKey) {
 }
 
 // Firebase initialization
+let initPromise: Promise<void> | null = null;
+let lastInitAttempt = 0;
+const INIT_COOLDOWN = 10000; // 10 seconds cooldown between failed attempts
+
 const initializeFirebase = async () => {
-  try {
-    // If config is still missing, try loading it again (useful for serverless)
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-      loadConfig();
-    }
+  if (db) return;
+  if (initPromise) return initPromise;
+  
+  const now = Date.now();
+  if (now - lastInitAttempt < INIT_COOLDOWN) {
+    console.log("Skipping Firebase initialization due to cooldown");
+    return;
+  }
 
-    // Check if we have enough config to initialize
-    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-      const msg = `Missing required Firebase config: apiKey=${!!firebaseConfig.apiKey}, projectId=${!!firebaseConfig.projectId}`;
-      console.error("CRITICAL: " + msg);
-      throw new Error(msg);
-    }
-
-    // Initialize Firebase
-    firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    const isNewApp = getApps().length === 1;
-    
-    // Auth Initialization
-    auth = getAuth(firebaseApp);
-    
-    // Anonymous Sign-in for Server (to satisfy security rules requiring auth)
+  lastInitAttempt = now;
+  
+  initPromise = (async () => {
     try {
-      if (!auth.currentUser) {
-        await signInAnonymously(auth);
-        console.log("Server signed in anonymously");
+      // If config is still missing, try loading it again
+      if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+        loadConfig();
       }
-    } catch (authErr) {
-      console.error("Server anonymous sign-in failed:", authErr);
-    }
-    
-    const firestoreDatabaseId = getEnv('FIREBASE_DATABASE_ID');
-    const dbId = (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined;
-    
-    if (isNewApp) {
-      db = initializeFirestore(firebaseApp, {
-        experimentalForceLongPolling: true,
-      }, dbId as any);
-    } else {
+
+      if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+        throw new Error("Missing Firebase config");
+      }
+
+      firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+      auth = getAuth(firebaseApp);
+      
+      const firestoreDatabaseId = getEnv('FIREBASE_DATABASE_ID');
+      const dbId = (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined;
+      
       try {
         db = getFirestore(firebaseApp, dbId);
       } catch (e) {
         db = initializeFirestore(firebaseApp, {
           experimentalForceLongPolling: true,
+          experimentalAutoDetectLongPolling: false,
         }, dbId as any);
       }
-    }
-    
-    if (db) {
-      console.log("Firebase Initialized Successfully:", {
-        projectId: firebaseConfig.projectId,
-        databaseId: dbId || "(default)",
-        hasApiKey: !!firebaseConfig.apiKey,
-        isNewApp,
-        configFound
-      });
-
-      // Connection test (as recommended in instructions)
-      getDocFromServer(doc(db, 'test', 'connection')).catch(err => {
-        // We expect permission denied if path is not public, but 'offline' means config error
-        if (err.message && err.message.includes('the client is offline')) {
-           console.error("CRITICAL: Firebase connection test failed - CLIENT IS OFFLINE. Check API keys and network.");
+      
+      if (db) {
+        console.log("Firestore Initialized:", { projectId: firebaseConfig.projectId, databaseId: dbId || "(default)" });
+        
+        // Non-blocking anonymous sign-in
+        if (!auth.currentUser) {
+          signInAnonymously(auth)
+            .then(() => console.log("Server signed in anonymously"))
+            .catch(e => console.warn("Background server auth failed:", e.message));
         }
-      });
 
-      initError = null; // Clear any previous error
-    } else {
-      throw new Error("Firestore instance (db) is null after initialization attempt.");
+        initError = null;
+      }
+    } catch (error: any) {
+      initError = error;
+      console.error("CRITICAL: Firebase initialization failed:", error);
+      // Keep initPromise null so next request after cooldown can try again
+    } finally {
+      initPromise = null;
     }
-  } catch (error: any) {
-    initError = error;
-    console.error("CRITICAL: Firebase initialization failed:", error);
-    console.error("Firebase Config (redacted):", {
-      projectId: firebaseConfig.projectId,
-      hasApiKey: !!firebaseConfig.apiKey,
-      hasAppId: !!firebaseConfig.appId,
-      configFound,
-      configPaths
-    });
-  }
+  })();
+  
+  return initPromise;
 };
+
+// Route for detailed debugging
+app.get("/api/debug-firebase", async (req, res) => {
+  const firestoreDatabaseId = getEnv('FIREBASE_DATABASE_ID') || "(default)";
+  const status: any = {
+    initialized: !!db,
+    configFound,
+    projectId: firebaseConfig.projectId,
+    databaseId: firestoreDatabaseId,
+    hasApiKey: !!firebaseConfig.apiKey,
+    auth: {
+      isLoggedIn: !!auth?.currentUser,
+      uid: auth?.currentUser?.uid || null,
+      isAnonymous: auth?.currentUser?.isAnonymous || false
+    },
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      HAS_VITE_PROJECT_ID: !!process.env.VITE_FIREBASE_PROJECT_ID,
+      HAS_FIREBASE_PROJECT_ID: !!process.env.FIREBASE_PROJECT_ID,
+    }
+  };
+
+  if (db) {
+    try {
+      // Try to read a known collection
+      const testSnap = await getDocs(query(collection(db, "content"), limit(1)));
+      status.firestoreRead = "OK";
+      status.contentCount = testSnap.size;
+    } catch (e: any) {
+      status.firestoreRead = "FAILED";
+      status.firestoreError = e.message;
+      status.firestoreStack = e.stack;
+    }
+  }
+
+  res.json(status);
+});
 
 enum OperationType {
   CREATE = 'create',
@@ -246,36 +249,32 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
-// initial attempt
-initializeFirebase();
+// initial attempt - non-blocking
+initializeFirebase().catch(e => console.error("Initial Firebase setup failed:", e));
 
 // Middleware to check if Firebase DB is initialized
 const checkDb = async (req: any, res: any, next: any) => {
-  // If db is not initialized, try one more time (useful for serverless environments)
+  // Ensure we have a DB instance
   if (!db) {
-    console.log("DB is null, attempting re-initialization...");
-    await initializeFirebase();
+    try {
+      // Small timeout for re-init to prevent long hangs
+      const initPromise = initializeFirebase();
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000));
+      await Promise.race([initPromise, timeoutPromise]);
+    } catch (e) {
+      // Continue anyway, we'll check db below
+    }
   }
 
   if (!db) {
-    return res.status(500).json({ 
-      error: "Firebase not initialized", 
-      details: "Database instance is missing after re-initialization attempt.",
-      initError: initError ? initError.message : "Unknown initialization error",
-      configFound,
-      configPaths,
-      cwd: process.cwd(),
-      dirname: __dirname,
-      hasApiKey: !!firebaseConfig.apiKey,
-      apiKeyLength: firebaseConfig.apiKey ? firebaseConfig.apiKey.length : 0,
-      projectId: firebaseConfig.projectId,
-      env: {
-        NODE_ENV: process.env.NODE_ENV,
-        VERCEL: process.env.VERCEL,
-        HAS_VITE_API_KEY: !!process.env.VITE_FIREBASE_API_KEY,
-        HAS_FIREBASE_API_KEY: !!process.env.FIREBASE_API_KEY
-      }
-    });
+    // If it's a critical path, fail. If it's a background path, maybe skip?
+    if (req.path.startsWith("/auth/me") || req.path.startsWith("/content")) {
+       return res.status(503).json({ 
+        error: "Service Temporarily Unavailable", 
+        details: "Firebase connection is taking longer than expected. Please refresh in a few seconds.",
+        initError: initError ? initError.message : "Initialization in progress"
+      });
+    }
   }
   next();
 };
@@ -285,17 +284,9 @@ app.get("/api/health", (req, res) => {
   res.json({ 
     status: "ok", 
     timestamp: new Date().toISOString(), 
-    db: db ? "connected" : "missing",
-    auth: {
-      isLoggedIn: !!auth?.currentUser,
-      uid: auth?.currentUser?.uid || null,
-      isAnonymous: auth?.currentUser?.isAnonymous || false
-    },
-    config: {
-      projectId: firebaseConfig.projectId,
-      databaseId: getEnv('FIREBASE_DATABASE_ID') || "(default)",
-      hasApiKey: !!firebaseConfig.apiKey
-    }
+    db: db ? "connected" : "connecting",
+    authStatus: !!auth,
+    env: process.env.NODE_ENV
   });
 });
 
@@ -311,7 +302,16 @@ const generateToken = (userId: string) => {
 };
 
 const authenticateToken = (req: any, res: any, next: any) => {
-  const token = req.cookies.auth_token;
+  // Check cookie first, then Authorization header
+  let token = req.cookies.auth_token;
+  
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+  }
+
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
   jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
@@ -323,16 +323,16 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
 async function logActivity(userId: string, email: string, name: string, eventType: string, contentId?: string, details?: string, contentTitle?: string) {
   try {
-    await addDoc(collection(db, "activity"), {
-      user_id: userId,
-      email: email || "Noma'lum",
-      name: name || "Foydalanuvchi",
-      event_type: eventType,
-      content_id: contentId || null,
-      details: details || "",
-      content_title: contentTitle || "",
-      timestamp: new Date().toISOString()
-    });
+      await addDoc(collection(db, "activity"), {
+        user_id: userId,
+        email: email || "Noma'lum",
+        name: name || "Foydalanuvchi",
+        event_type: eventType,
+        content_id: contentId || null,
+        details: details || "",
+        content_title: contentTitle || "",
+        timestamp: serverTimestamp()
+      });
   } catch (e) {
     console.error("Failed to log activity", e);
   }
@@ -402,8 +402,8 @@ app.post("/api/auth/register", async (req, res) => {
       picture: picture || "",
       role: "user",
       status: "active",
-      last_login: new Date().toISOString(),
-      created_at: new Date().toISOString()
+      last_login: serverTimestamp(),
+      created_at: serverTimestamp()
     };
 
     await setDoc(newUserRef, userData);
@@ -415,7 +415,11 @@ app.post("/api/auth/register", async (req, res) => {
       httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
-    res.json({ success: true, user: { id: userId, username, name: userData.name, picture: userData.picture } });
+    res.json({ 
+      success: true, 
+      token,
+      user: { id: userId, username, name: userData.name, picture: userData.picture } 
+    });
   } catch (error: any) {
     console.error("Registration error details:", error);
     res.status(500).json({ error: `Failed to register: ${error.message || 'Unknown error'}` });
@@ -448,7 +452,7 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     await updateDoc(doc(db, "users", userDoc.id), {
-      last_login: new Date().toISOString()
+      last_login: serverTimestamp()
     });
 
     await logActivity(userDoc.id, userData.username || userData.email, userData.name, "login", undefined, "Tizimga kirdi");
@@ -467,6 +471,7 @@ app.post("/api/auth/login", async (req, res) => {
 
     res.json({ 
       success: true, 
+      token,
       user: { 
         id: userDoc.id, 
         username: userData.username, 
@@ -498,14 +503,19 @@ app.post("/api/auth/google", async (req, res) => {
         picture: picture || "",
         role: "user",
         status: "active",
-        created_at: new Date().toISOString(),
-        last_login: new Date().toISOString()
+        created_at: serverTimestamp(),
+        last_login: serverTimestamp()
       };
-      await setDoc(userRef, userData);
-      await logActivity(uid, email, userData.name, "register", undefined, "Google orqali ro'yxatdan o'tdi");
+      try {
+        await setDoc(userRef, userData);
+        await logActivity(uid, email, userData.name, "register", undefined, "Google orqali ro'yxatdan o'tdi");
+      } catch (writeErr: any) {
+        console.error("Firestore write error during Google auth:", writeErr);
+        return res.status(500).json({ error: `Ma'lumotlar bazasiga yozishda xatolik: ${writeErr.message}` });
+      }
     } else {
       userData = userSnap.data();
-      await updateDoc(userRef, { last_login: new Date().toISOString() });
+      await updateDoc(userRef, { last_login: serverTimestamp() });
       await logActivity(uid, email, userData.name, "login", undefined, "Google orqali kirdi");
     }
 
@@ -521,7 +531,7 @@ app.post("/api/auth/google", async (req, res) => {
       });
     }
 
-    res.json({ success: true, user: userData });
+    res.json({ success: true, token, user: userData });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
@@ -829,8 +839,8 @@ app.post("/api/submissions", authenticateToken, async (req: any, res: any) => {
       image_url: image_url || "",
       video_url: video_url || "",
       status: 'pending',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
     };
 
     const docRef = await addDoc(collection(db, "submissions"), submissionData);
@@ -869,7 +879,7 @@ app.patch("/api/admin/submissions/:id", requireAdmin, async (req: any, res: any)
     await updateDoc(subRef, {
       status,
       admin_feedback: admin_feedback || "",
-      updated_at: new Date().toISOString()
+      updated_at: serverTimestamp()
     });
 
     // If accepted, add to content
@@ -889,7 +899,7 @@ app.patch("/api/admin/submissions/:id", requireAdmin, async (req: any, res: any)
         author: subData.userName,
         image_url: subData.image_url,
         video_url: subData.video_url,
-        created_at: new Date().toISOString(),
+        created_at: serverTimestamp(),
         is_admin_added: false,
         submitted_by: subData.userId,
         submissionId: id
@@ -1301,9 +1311,9 @@ async function seedContent() {
 }
 
 async function startServer() {
-  // Skip seeding on Vercel to avoid overhead in serverless functions
+  // Seeding occurs in the background to not block app.listen()
   if (process.env.VERCEL !== "1") {
-    await seedContent();
+    seedContent().catch(err => console.error("Initial seeding failed:", err));
   }
   
   if (process.env.NODE_ENV !== "production") {

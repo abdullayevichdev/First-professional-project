@@ -19,7 +19,8 @@ import { SubmitArticle } from './pages/SubmitArticle';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
 import { User } from './types';
-import { signInAnon } from './lib/firebase';
+import { auth, signInAnon } from './lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
 
 function AnimatedRoutes({ user }: { user: User | null }) {
   const location = useLocation();
@@ -52,18 +53,26 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
-    // Check if firebase is configured
-    const isConfigured = !!import.meta.env.VITE_FIREBASE_API_KEY && !!import.meta.env.VITE_FIREBASE_PROJECT_ID;
-    setFirebaseConfigMissing(!isConfigured);
+    // We are now using firebase-applet-config.json
+    setFirebaseConfigMissing(false);
   }, []);
 
   const fetchUser = async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30s
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = {
+        'Accept': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch('/api/auth/me', { 
         credentials: 'include',
+        headers,
         signal: controller.signal
       });
       clearTimeout(timeoutId);
@@ -71,6 +80,10 @@ export default function App() {
         const data = await res.json();
         setUser(data);
       } else {
+        // If 401, maybe token expired, clear it
+        if (res.status === 401) {
+          localStorage.removeItem('auth_token');
+        }
         setUser(null);
       }
     } catch (err: any) {
@@ -87,11 +100,10 @@ export default function App() {
 
   useEffect(() => {
     const initAuth = async () => {
-      try {
-        await signInAnon();
-      } catch (e) {
-        console.warn("Anonymous sign-in on frontend failed (expected if offline or misconfigured):", e);
-      }
+      // Non-blocking anonymous sign-in
+      signInAnonymously(auth).catch(e => {
+        console.warn("Anonymous sign-in on frontend failed:", e);
+      });
       await fetchUser();
     };
     
@@ -108,10 +120,20 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      await fetch('/api/auth/logout', { 
+        method: 'POST', 
+        credentials: 'include',
+        headers
+      });
     } catch (e) {
       console.error('Server logout error:', e);
     }
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('admin_token');
     setUser(null);
   };
 

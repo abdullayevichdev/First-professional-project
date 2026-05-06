@@ -1,20 +1,22 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, signInAnonymously } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, updateDoc, getDoc, getDocs, where, Timestamp } from 'firebase/firestore';
+import configJson from '../../firebase-applet-config.json';
 
-// On Vercel or production, these should be set via environment variables.
-// In AI Studio, ensure they are set in the Settings -> Environment Variables.
+const configData = configJson as any;
+
+// Use config from JSON file as primary source to ensure migration works
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: configData.apiKey,
+  authDomain: configData.authDomain,
+  projectId: configData.projectId,
+  storageBucket: configData.storageBucket,
+  messagingSenderId: configData.messagingSenderId,
+  appId: configData.appId,
+  measurementId: configData.measurementId
 };
 
-const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+const firestoreDatabaseId = configData.firestoreDatabaseId;
 
 // Helper to check if config is complete
 const isConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
@@ -28,9 +30,30 @@ export const app = isConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
 export const db = app 
   ? (firestoreDatabaseId && firestoreDatabaseId !== "(default)"
-    ? initializeFirestore(app, { experimentalForceLongPolling: true }, firestoreDatabaseId)
-    : initializeFirestore(app, { experimentalForceLongPolling: true }))
+    ? initializeFirestore(app, { 
+        experimentalForceLongPolling: true,
+        experimentalAutoDetectLongPolling: false,
+      }, firestoreDatabaseId)
+    : initializeFirestore(app, { 
+        experimentalForceLongPolling: true,
+        experimentalAutoDetectLongPolling: false,
+      }))
   : null;
+
+// Connection health check
+if (db) {
+  import('firebase/firestore').then(({ doc, getDocFromCache, getDocFromServer }) => {
+    const testDoc = doc(db, 'system', 'connection_test');
+    getDocFromServer(testDoc).catch(err => {
+      if (err.message.includes('unavailable')) {
+        console.error("Firestore ga ulanib bo'lmadi. Tarmoqni tekshiring.");
+      }
+    });
+  });
+}
+
+// Re-export Firestore tools for easier use
+export { collection, doc, onSnapshot, query, orderBy, limit, setDoc, updateDoc, getDoc, getDocs, where, Timestamp };
 
 // Automatic Anonymous Login
 if (auth && isConfigured) {
@@ -39,7 +62,10 @@ if (auth && isConfigured) {
       console.log("Anonymous login success");
     })
     .catch((error) => {
-      console.error("Anonymous login error:", error);
+      // Ignore if user is already signed in with something else or offline
+      if (error.code !== 'auth/internal-error') {
+        console.warn("Anonymous login warning:", error.message);
+      }
     });
 }
 
