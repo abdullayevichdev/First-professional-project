@@ -1,22 +1,27 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, signInAnonymously } from 'firebase/auth';
 import { initializeFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, updateDoc, getDoc, getDocs, where, Timestamp } from 'firebase/firestore';
-import configJson from '../../firebase-applet-config.json';
 
-const configData = configJson as any;
+// Note: firebase-applet-config.json is managed by AI Studio. 
+// For external deployments (Vercel), use Environment Variables instead.
 
-// Use config from JSON file as primary source to ensure migration works
+// Use environment variables
 const firebaseConfig = {
-  apiKey: configData.apiKey,
-  authDomain: configData.authDomain,
-  projectId: configData.projectId,
-  storageBucket: configData.storageBucket,
-  messagingSenderId: configData.messagingSenderId,
-  appId: configData.appId,
-  measurementId: configData.measurementId
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-const firestoreDatabaseId = configData.firestoreDatabaseId;
+const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || "(default)";
+
+// No longer trying to load configJson to avoid build failures in Vercel
+if (!firebaseConfig.apiKey) {
+  console.warn("Firebase configuration is missing. Please set VITE_FIREBASE_API_KEY and other environment variables.");
+}
 
 // Helper to check if config is complete
 const isConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;

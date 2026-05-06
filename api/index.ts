@@ -68,27 +68,49 @@ let firebaseConfig: any = {};
 let configFound = false;
 
 const loadConfig = () => {
-  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath)) {
-    try {
-      const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-      firebaseConfig = {
-        apiKey: localConfig.apiKey,
-        authDomain: localConfig.authDomain,
-        projectId: localConfig.projectId,
-        storageBucket: localConfig.storageBucket,
-        messagingSenderId: localConfig.messagingSenderId,
-        appId: localConfig.appId,
-        measurementId: localConfig.measurementId
-      };
-      if (localConfig.firestoreDatabaseId) {
-        process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
+  // Always prefer environment variables in production
+  firebaseConfig = {
+    apiKey: getEnv('FIREBASE_API_KEY'),
+    authDomain: getEnv('FIREBASE_AUTH_DOMAIN'),
+    projectId: getEnv('FIREBASE_PROJECT_ID'),
+    storageBucket: getEnv('FIREBASE_STORAGE_BUCKET'),
+    messagingSenderId: getEnv('FIREBASE_MESSAGING_SENDER_ID'),
+    appId: getEnv('FIREBASE_APP_ID'),
+    measurementId: getEnv('FIREBASE_MEASUREMENT_ID')
+  };
+
+  const dbId = getEnv('FIREBASE_DATABASE_ID');
+  if (dbId) {
+    process.env.FIREBASE_DATABASE_ID = dbId;
+  }
+
+  // Fallback to JSON only if env vars are missing and file exists (local/AI Studio)
+  if (!firebaseConfig.apiKey) {
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (fs.existsSync(configPath)) {
+      try {
+        const localConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+        firebaseConfig = {
+          apiKey: localConfig.apiKey,
+          authDomain: localConfig.authDomain,
+          projectId: localConfig.projectId,
+          storageBucket: localConfig.storageBucket,
+          messagingSenderId: localConfig.messagingSenderId,
+          appId: localConfig.appId,
+          measurementId: localConfig.measurementId
+        };
+        if (localConfig.firestoreDatabaseId) {
+          process.env.FIREBASE_DATABASE_ID = localConfig.firestoreDatabaseId;
+        }
+        configFound = true;
+        console.log("Firebase config loaded from JSON:", configPath);
+      } catch (e) {
+        console.error("Failed to read firebase-applet-config.json", e);
       }
-      configFound = true;
-      console.log("Firebase config loaded from JSON:", configPath);
-    } catch (e) {
-      console.error("Failed to read firebase-applet-config.json", e);
     }
+  } else {
+    configFound = true;
+    console.log("Firebase config loaded from Environment Variables");
   }
 };
 
