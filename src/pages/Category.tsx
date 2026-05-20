@@ -32,15 +32,11 @@ export const Category: React.FC = () => {
   }, [id]);
 
   const getTitle = (item: ContentItem) => {
-    if (i18n.language === 'en') return item.title_en;
-    if (i18n.language === 'ru') return item.title_ru;
-    return item.title_uz;
+    return item.title_en || item.title_uz || item.title_ru || '';
   };
 
   const getExcerpt = (item: ContentItem) => {
-    if (i18n.language === 'en') return item.excerpt_en;
-    if (i18n.language === 'ru') return item.excerpt_ru;
-    return item.excerpt_uz;
+    return item.excerpt_en || item.excerpt_uz || item.excerpt_ru || '';
   };
 
   return (
@@ -64,7 +60,7 @@ export const Category: React.FC = () => {
           <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-gold"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 sm:gap-16">
+        <div className={`grid grid-cols-1 ${items.length === 1 ? 'max-w-2xl mx-auto' : items.length === 2 ? 'md:grid-cols-2 max-w-5xl mx-auto' : 'md:grid-cols-2 lg:grid-cols-3'} gap-10 sm:gap-16`}>
           {items.map((item, idx) => (
             <motion.div
               key={item.id}

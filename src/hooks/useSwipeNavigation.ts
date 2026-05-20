@@ -5,7 +5,6 @@ const navItems = [
   '/',
   '/category/uzbekistan',
   '/category/global',
-  '/category/speech',
   '/category/opinion',
   '/about',
 ];

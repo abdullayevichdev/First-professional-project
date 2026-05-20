@@ -21,9 +21,11 @@ import { Terms } from './pages/Terms';
 import { User } from './types';
 import { auth, signInAnon } from './lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
+import { useSwipeNavigation } from './hooks/useSwipeNavigation';
 
 function AnimatedRoutes({ user, onLogout }: { user: User | null, onLogout: () => void }) {
   const location = useLocation();
+  useSwipeNavigation();
 
   return (
     <AnimatePresence mode="wait">

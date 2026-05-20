@@ -75,46 +75,6 @@ export const About: React.FC = () => {
             />
           </motion.div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 sm:gap-24 items-center">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="order-2 md:order-1 aspect-square bg-navy/5 dark:bg-black/20 article-card shadow-2xl"
-          >
-            <img 
-              src="https://picsum.photos/seed/why/800/800" 
-              alt="Why it matters" 
-              className="w-full h-full object-cover" 
-              referrerPolicy="no-referrer" 
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                if (target.src.includes('unsplash.com')) {
-                  target.src = `https://picsum.photos/seed/why/800/800`;
-                } else {
-                  target.src = `https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&q=80&w=800&h=800`;
-                }
-              }}
-            />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="order-1 md:order-2"
-          >
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-navy dark:text-white mb-6 sm:mb-8">{t('common.why_matters')}</h2>
-            <div className="text-navy/70 dark:text-gray-400 leading-[1.8] sm:leading-[2] font-light text-base sm:text-lg space-y-4 sm:space-y-6">
-              <p>
-                {t('about.why_p1')}
-              </p>
-              <p>
-                {t('about.why_p2')}
-              </p>
-            </div>
-          </motion.div>
-        </div>
       </section>
     </PageWrapper>
   );

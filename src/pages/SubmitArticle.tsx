@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Send, Image as ImageIcon, Video, AlertCircle, CheckCircle, Loader2, Languages, Sparkles } from 'lucide-react';
+import { Send, Image as ImageIcon, Video, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { PageWrapper } from '../components/PageWrapper';
 import { User } from '../types';
 
@@ -11,23 +11,16 @@ interface SubmitArticleProps {
 }
 
 export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeLang, setActiveLang] = useState<'uz' | 'ru' | 'en'>('uz');
   const [formData, setFormData] = useState({
-    title_uz: '',
-    title_ru: '',
-    title_en: '',
-    excerpt_uz: '',
-    excerpt_ru: '',
-    excerpt_en: '',
-    body_uz: '',
-    body_ru: '',
-    body_en: '',
+    title: '',
+    excerpt: '',
+    body: '',
     category: 'uzbekistan',
     image_url: '',
     video_url: ''
@@ -56,11 +49,27 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
     setLoading(true);
     setError(null);
 
+    // Map single input values to all language keys in the payload to ensure absolute compatibility with database schema and query fallbacks
+    const payload = {
+      title_uz: formData.title,
+      title_ru: formData.title,
+      title_en: formData.title,
+      excerpt_uz: formData.excerpt,
+      excerpt_ru: formData.excerpt,
+      excerpt_en: formData.excerpt,
+      body_uz: formData.body,
+      body_ru: formData.body,
+      body_en: formData.body,
+      category: formData.category,
+      image_url: formData.image_url,
+      video_url: formData.video_url
+    };
+
     try {
-      const res = await fetch('/api/submissions', {
+       const res = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -69,7 +78,7 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
         setTimeout(() => navigate('/profile'), 3000);
       } else {
         const data = await res.json();
-        throw new Error(data.error || 'Xatolik yuz berdi');
+        throw new Error(data.error || 'Failed to submit article');
       }
     } catch (err: any) {
       setError(err.message);
@@ -122,24 +131,8 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
             transition={{ delay: 0.1 }}
             className="bg-white dark:bg-dark-card p-6 sm:p-8 rounded-2xl shadow-xl border border-navy/5 dark:border-gold/10 space-y-6 sm:space-y-8"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 dark:border-white/5 pb-4 gap-4">
+            <div className="border-b border-gray-100 dark:border-white/5 pb-4">
               <h2 className="text-lg sm:text-xl font-serif font-bold text-navy dark:text-white">{t('submit_article.content_title')}</h2>
-              <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-lg">
-                {(['uz', 'ru', 'en'] as const).map((lang) => (
-                  <button
-                    key={lang}
-                    type="button"
-                    onClick={() => setActiveLang(lang)}
-                    className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${
-                      activeLang === lang 
-                        ? 'bg-white dark:bg-gold text-navy dark:text-navy shadow-sm' 
-                        : 'text-gray-400 hover:text-navy dark:hover:text-white'
-                    }`}
-                  >
-                    {lang === 'uz' ? "O'zb" : lang === 'ru' ? 'Rus' : 'Eng'}
-                  </button>
-                ))}
-              </div>
             </div>
             
             <div className="grid grid-cols-1 gap-8">
@@ -148,39 +141,42 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">
-                      {t('submit_article.label_title')} ({activeLang.toUpperCase()})
+                      {t('submit_article.label_title')}
                     </label>
                     <input 
-                      required={activeLang === 'uz'} 
-                      name={`title_${activeLang}`} 
-                      value={formData[`title_${activeLang}` as keyof typeof formData]} 
+                      required 
+                      name="title" 
+                      value={formData.title} 
                       onChange={handleChange} 
+                      placeholder="Enter the article title in English..."
                       className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" 
                     />
                   </div>
                   <div>
                     <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">
-                      {t('submit_article.label_excerpt')} ({activeLang.toUpperCase()})
+                      {t('submit_article.label_excerpt')}
                     </label>
                     <textarea 
-                      required={activeLang === 'uz'} 
-                      name={`excerpt_${activeLang}`} 
-                      value={formData[`excerpt_${activeLang}` as keyof typeof formData]} 
+                      required 
+                      name="excerpt" 
+                      value={formData.excerpt} 
                       onChange={handleChange} 
                       rows={3} 
+                      placeholder="Enter a brief summary of the article in English..."
                       className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" 
                     />
                   </div>
                   <div>
                     <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">
-                      {t('submit_article.label_body')} ({activeLang.toUpperCase()})
+                      {t('submit_article.label_body')}
                     </label>
                     <textarea 
-                      required={activeLang === 'uz'} 
-                      name={`body_${activeLang}`} 
-                      value={formData[`body_${activeLang}` as keyof typeof formData]} 
+                      required 
+                      name="body" 
+                      value={formData.body} 
                       onChange={handleChange} 
                       rows={10} 
+                      placeholder="Write the full body of the article in English..."
                       className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white" 
                     />
                   </div>
@@ -201,11 +197,10 @@ export const SubmitArticle: React.FC<SubmitArticleProps> = ({ user }) => {
               <div>
                 <label className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-navy/40 dark:text-gold/40 mb-2">{t('submit_article.category')}</label>
                 <select name="category" value={formData.category} onChange={handleChange} className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-lg focus:outline-none focus:border-gold transition-colors text-sm dark:text-white">
-                  <option value="uzbekistan">O'zbekiston siyosati</option>
-                  <option value="global">Global siyosat</option>
-                  <option value="speech">Nutq tahlili</option>
-                  <option value="opinion">Mulohaza va tahlil</option>
-                  <option value="historical">Tarixiy tahlil</option>
+                  <option value="uzbekistan">Uzbekistan politics</option>
+                  <option value="global">Global politics</option>
+                  <option value="opinion">Opinion & analysis</option>
+                  <option value="historical">Historical analysis</option>
                 </select>
               </div>
               <div>

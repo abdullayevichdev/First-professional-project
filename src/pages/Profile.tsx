@@ -65,9 +65,7 @@ export const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
   }, [user]);
 
   const getTitle = (item: ContentItem) => {
-    if (i18n.language === 'en') return item.title_en;
-    if (i18n.language === 'ru') return item.title_ru;
-    return item.title_uz;
+    return item.title_en || item.title_uz || item.title_ru || '';
   };
 
   const handleDismiss = async (id: string) => {
@@ -347,8 +345,8 @@ export const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div className="min-w-0 flex-1">
-                            <h4 className="text-lg font-serif font-bold text-navy dark:text-white truncate" title={sub.title_uz}>
-                              {i18n.language === 'en' ? sub.title_en : i18n.language === 'ru' ? sub.title_ru : sub.title_uz}
+                            <h4 className="text-lg font-serif font-bold text-navy dark:text-white truncate" title={sub.title_en || sub.title_uz || sub.title_ru}>
+                              {sub.title_en || sub.title_uz || sub.title_ru}
                             </h4>
                             <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">
                               {new Date(sub.created_at).toLocaleDateString()} • {sub.category}

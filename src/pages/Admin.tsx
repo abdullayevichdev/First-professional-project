@@ -961,7 +961,6 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                   >
                     <option value="uzbekistan">O'zbekiston Siyosati</option>
                     <option value="global">Global Siyosat</option>
-                    <option value="speech">Nutq Tahlili</option>
                     <option value="opinion">Mulohaza va Tahlil</option>
                     <option value="historical">Tarixiy Kontekst</option>
                   </select>

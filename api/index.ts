@@ -1142,6 +1142,29 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
   }
 });
 
+app.post("/api/contact/submit", async (req, res) => {
+  const { fullName, email, message } = req.body;
+  if (!fullName || !email || !message) {
+    return res.status(400).json({ error: "Full name, email, and message are required" });
+  }
+
+  try {
+    const docRef = await addDoc(collection(db, "messages"), {
+      to: "admin",
+      to_name: `${fullName} <${email}>`,
+      from_name: fullName,
+      from_email: email,
+      message,
+      sent_at: serverTimestamp(),
+      type: "user_inquiry"
+    });
+    res.json({ success: true, id: docRef.id });
+  } catch (e) {
+    console.error("Error saving message:", e);
+    res.status(500).json({ error: "Failed to send message" });
+  }
+});
+
 app.get("/api/admin/newsletter", requireAdmin, async (req, res) => {
   try {
     const snap = await getDocs(collection(db, "newsletter"));
@@ -1286,71 +1309,107 @@ async function seedContent() {
     return;
   }
   try {
-    const snapshot = await getDocs(collection(db, "content"));
-    if (snapshot.empty) {
-      console.log("Seeding initial content...");
-      const initialContent = [
-        {
-          id: "art-1",
-          type: "article",
-          category: "uzbekistan",
-          title_uz: "O'zbekistonning yangi iqtisodiy strategiyasi: Tahlil",
-          title_ru: "Новая экономическая стратегия Узбекистана: Анализ",
-          title_en: "Uzbekistan's New Economic Strategy: An Analysis",
-          excerpt_uz: "O'zbekiston iqtisodiyotini modernizatsiya qilish yo'lidagi asosiy qadamlar va kutilayotgan natijalar haqida batafsil tahlil.",
-          excerpt_ru: "Подробный анализ основных шагов по модернизации экономики Узбекистана и ожидаемых результатов.",
-          excerpt_en: "A detailed analysis of the key steps towards modernizing Uzbekistan's economy and the expected results.",
-          body_uz: "O'zbekiston iqtisodiyoti so'nggi yillarda jadal rivojlanish bosqichiga kirdi. Yangi strategiya doirasida xususiylashtirish jarayonlari, xorijiy investitsiyalarni jalb qilish va eksport salohiyatini oshirishga alohida e'tibor qaratilmoqda...",
-          body_ru: "Экономика Узбекистана в последние годы вступила в фазу интенсивного развития. В рамках новой стратегии особое внимание уделяется процессам приватизации, привлечению иностранных инвестиций и повышению экспортного потенциала...",
-          body_en: "Uzbekistan's economy has entered a phase of rapid development in recent years. Within the framework of the new strategy, special attention is paid to privatization processes, attracting foreign investment and increasing export potential...",
-          author: "Tahqiq Tahlilchisi",
-          image_url: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=80&w=1200&h=800",
-          created_at: serverTimestamp(),
-          is_admin_added: true
-        },
-        {
-          id: "art-2",
-          type: "article",
-          category: "global",
-          title_uz: "Global geosiyosat: Markaziy Osiyoning o'rni",
-          title_ru: "Глобальная геополитика: Роль Центральной Азии",
-          title_en: "Global Geopolitics: The Role of Central Asia",
-          excerpt_uz: "Zamonaviy dunyoda Markaziy Osiyo mintaqasining strategik ahamiyati va yirik davlatlar bilan munosabatlari.",
-          excerpt_ru: "Стратегическое значение региона Центральной Азии в современном мире и его отношения с крупными державами.",
-          excerpt_en: "The strategic importance of the Central Asian region in the modern world and its relations with major powers.",
-          body_uz: "Markaziy Osiyo bugungi kunda global geosiyosatning muhim chorrahasiga aylandi. Mintaqa davlatlari o'rtasidagi hamkorlik va tashqi siyosatdagi muvozanat masalalari dolzarb bo'lib qolmoqda...",
-          body_ru: "Центральная Азия сегодня стала важным перекрестком глобальной геополитики. Вопросы сотрудничества между странами региона и баланса во внешней политике остаются актуальными...",
-          body_en: "Central Asia today has become an important crossroads of global geopolitics. Issues of cooperation between the countries of the region and balance in foreign policy remain relevant...",
-          author: "Siyosiy Sharhlovchi",
-          image_url: "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&q=80&w=1200&h=800",
-          created_at: serverTimestamp(),
-          is_admin_added: true
-        },
-        {
-          id: "art-3",
-          type: "article",
-          category: "speech",
-          title_uz: "Siyosiy nutq tahlili: Etika va Estetika",
-          title_ru: "Анализ политической речи: Этика и Эстетика",
-          title_en: "Political Speech Analysis: Ethics and Aesthetics",
-          excerpt_uz: "Siyosatchilarning nutq madaniyati va ularning xalqaro maydondagi ta'siri haqida ilmiy-ommabop tahlil.",
-          excerpt_ru: "Научно-популярный анализ речевой культуры политиков и их влияния на международной арене.",
-          excerpt_en: "A popular science analysis of the speech culture of politicians and their influence on the international arena.",
-          body_uz: "Nutq - bu siyosatchining eng kuchli qurolidir. Ushbu maqolada biz zamonaviy liderlarning nutq uslublari va ularning psixologik ta'sirini ko'rib chiqamiz...",
-          body_ru: "Речь — самое мощное оружие политика. В этой статье мы рассмотрим стили речи современных лидеров и их психологическое воздействие...",
-          body_en: "Speech is a politician's most powerful weapon. In this article, we will look at the speech styles of modern leaders and their psychological impact...",
-          author: "Nutqshunos",
-          image_url: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80&w=1200&h=800",
-          created_at: serverTimestamp(),
-          is_admin_added: true
-        }
-      ];
-
-      for (const item of initialContent) {
-        await setDoc(doc(db, "content", item.id), item);
+    const initialContent = [
+      {
+        id: "art-1",
+        type: "article",
+        category: "uzbekistan",
+        title_uz: "O'zbekistonning yangi iqtisodiy strategiyasi: Tahlil",
+        title_ru: "Новая экономическая стратегия Узбекистана: Анализ",
+        title_en: "Uzbekistan's New Economic Strategy: An Analysis",
+        excerpt_uz: "O'zbekiston iqtisodiyotini modernizatsiya qilish yo'lidagi asosiy qadamlar va kutilayotgan natijalar haqida batafsil tahlil.",
+        excerpt_ru: "Подробный анализ основных шагов по модернизации экономики Узбекистана и ожидаемых результатов.",
+        excerpt_en: "A detailed analysis of the key steps towards modernizing Uzbekistan's economy and the expected results.",
+        body_uz: "O'zbekiston iqtisodiyoti so'nggi yillarda jadal rivojlanish bosqichiga kirdi. Yangi strategiya doirasida xususiylashtirish jarayonlari, xorijiy investitsiyalarni jalb qilish va eksport salohiyatini oshirishga alohida e'tibor qaratilmoqda...",
+        body_ru: "Экономика Узбекистана в последние годы вступила в фазу интенсивного развития. В рамках новой стратегии особое внимание уделяется процессам приватизации, привлечению иностранных инвестиций и повышению экспортного потенциала...",
+        body_en: "Uzbekistan's economy has entered a phase of rapid development in recent years. Within the framework of the new strategy, special attention is paid to privatization processes, attracting foreign investment and increasing export potential...",
+        author: "Tahqiq Tahlilchisi",
+        image_url: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=80&w=1200&h=800",
+        is_admin_added: true
+      },
+      {
+        id: "art-2",
+        type: "article",
+        category: "uzbekistan",
+        title_uz: "O'zbekiston raqamli suvereniteti va elektron hukumat taraqqiyoti",
+        title_ru: "Цифровой суверенитет Узбекистана и развитие электронного правительства",
+        title_en: "Uzbekistan's Digital Sovereignty and E-Government Developments",
+        excerpt_uz: "Mamlakatning raqamli infratuzilmasini himoya qilish, kiber-xavfsizlik va davlat xizmatlarini raqamlashtirish tahlili.",
+        excerpt_ru: "Анализ защиты цифровой инфраструктуры страны, кибербезопасности и цифровизации государственных услуг.",
+        excerpt_en: "Protection of national digital infrastructure, cyber security, and an analysis of public services digitization.",
+        body_uz: "Raqamli texnologiyalar davlat boshqaruvining samaradorligini oshirishda eng muhim qurol hisoblanadi. O'zbekiston kiber-xavfsizlikni kuchaytirish, milliy ma'lumotlar bazalarini himoyalash va aholiga ko'rsatiladigan elektron xizmatlarni soddalashtirish orqali o'z raqamli suverenitetini mustahkamlamoqda...",
+        body_ru: "Цифровые технологии — важнейший инструмент повышения эффективности государственного управления. Узбекистан укрепляет свой цифровой суверенитет, усиливая кибербезопасность...",
+        body_en: "Digital technologies are the most crucial instrument for improving state management efficiency. Uzbekistan is strengthening its digital sovereignty by reinforcing cybersecurity, protecting national databases, and simplifying electronic service delivery...",
+        author: "Prof. Dilshodbek Karimov",
+        image_url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=1200&h=800",
+        is_admin_added: true
+      },
+      {
+        id: "art-3",
+        type: "article",
+        category: "global",
+        title_uz: "Markaziy Osiyoning yangi geosiyosiy muvozanati",
+        title_ru: "Новый геополитический баланс Центральной Азии",
+        title_en: "Central Asia's New Geopolitical Equilibrium",
+        excerpt_uz: "Mintaqadagi ko'p tomonlama tashqi siyosat va global kuchlar o'rtasidagi hamkorlik istiqbollari.",
+        excerpt_ru: "Многовекторная внешняя политика в регионе и перспективы сотрудничества между мировыми державами.",
+        excerpt_en: "Multivector foreign policies in the region and cooperative outlooks amidst global powers.",
+        body_uz: "Bugungi kunda Markaziy Osiyo xalqaro munosabatlarning muhim chorrahasiga aylandi. Mintaqa davlatlari o'rtasidagi integratsiya jarayonlari tashqi siyosatda yangi sahifani ochib bermoqda. Ko'p tomonlama balanslangan munosabatlar mintaqa barqarorligining asosi hisoblanadi...",
+        body_ru: "Центральная Азия сегодня находится на перекрестке международных интересов. Процессы интеграции открывают новые возможности...",
+        body_en: "Today, Central Asia has become an important junction in international relations. Integration processes between the region's nations are opening a new chapter in foreign policy. A multivector balanced relationship serves as the core foundation for regional stability...",
+        author: "Farhod Ergashev",
+        image_url: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=1200&h=800",
+        is_admin_added: true
+      },
+      {
+        id: "art-4",
+        type: "article",
+        category: "speech",
+        title_uz: "Millat taqdirini o'zgartirgan nutqlar diskurs-tahlili",
+        title_ru: "Дискурс-анализ речей, изменивших судьбу наций",
+        title_en: "Speeches That Shaped Nations: A Discourse Analysis",
+        excerpt_uz: "Tarixiy va zamonaviy chiqishlar ortidagi ritorik uslublar, manipulyativ texnikalar va strategiyalar tahlili.",
+        excerpt_ru: "Анализ риторических методов, манипулятивных приемов и стратегий исторических и современных выступлений.",
+        excerpt_en: "Analysis of rhetorical devices, persuasive techniques, and communication strategies behind historic and modern speeches.",
+        body_uz: "Nutq — bu shunchaki so'zlar yig'indisi emas, u siyosiy iroda va g'oyaviy quroldir. Mazkur tahlilda davlat rahbarlarining muhim nutqlaridagi yashirin ma'nolar, ritorik savollar va tinglovchini ishontirish uslublari batafsil tekshiriladi...",
+        body_ru: "Речь — это не просто набор слов, а инструмент политической воли. В данном анализе подробно исследуются скрытые смыслы...",
+        body_en: "A speech is not merely a collection of words; it is a political will and an ideological instrument. In this research, hidden meanings, rhetorical questions, and audience persuasion methodologies of key public speeches are thoroughly examined...",
+        author: "Dildora Tojiyeva",
+        image_url: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80&w=1200&h=800",
+        is_admin_added: true
+      },
+      {
+        id: "art-5",
+        type: "article",
+        category: "historical",
+        title_uz: "Buyuk Ipak yo'li merosi: Siyosiy va madaniy diplomatiya darslari",
+        title_ru: "Наследие Великого шелкового пути: Уроки политической и культурной дипломатии",
+        title_en: "The Silk Road Legacy: Lessons in Political & Cultural Diplomacy",
+        excerpt_uz: "Tarixiy savdo aloqalarining zamonaviy geo-iqtisodiy tashabbuslar va mintaqaviy hamkorlikka ta'siri.",
+        excerpt_ru: "Влияние исторических торговых связей на современные геоэкономические инициативы и региональное сотрудничество.",
+        excerpt_en: "The impact of historic trade routes on modern geo-economic initiatives and regional collaboration.",
+        body_uz: "Buyuk Ipak yo'li faqatgina savdo yo'li emas, balki g'oyalar, dinlar va madaniy diplomatik aloqalar almashinuv o'chog'i edi. Bugungi kunda ushbu meros yangi iqtisodiy koridorlar doirasida qayta tiklanmoqda...",
+        body_ru: "Великий шелковый путь был не только торговым маршрутом, но и колыбелью обмена идеями...",
+        body_en: "The Great Silk Road was not only a trading route but a crucible for ideas, cultures, and diplomatic exchanges. Today, this legacy is revived in modern economic corridors...",
+        author: "Tarix fanlari doktori Jasur Alimov",
+        image_url: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&q=80&w=1200&h=800",
+        is_admin_added: true
       }
-      console.log("Seeding completed.");
+    ];
+
+    console.log("Checking and seeding items as needed...");
+    for (const item of initialContent) {
+      const itemDoc = doc(db, "content", item.id);
+      const itemSnap = await getDoc(itemDoc);
+      if (!itemSnap.exists()) {
+        console.log(`Seeding missing article: ${item.id}`);
+        await setDoc(itemDoc, {
+          ...item,
+          created_at: serverTimestamp()
+        });
+      }
     }
+    console.log("Seeding process completed.");
   } catch (e) {
     console.error("Failed to seed content", e);
   }

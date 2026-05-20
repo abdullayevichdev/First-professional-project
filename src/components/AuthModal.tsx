@@ -163,8 +163,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       }
     } catch (err: any) {
       console.error('Google auth error:', err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Google orqali kirishda xatolik yuz berdi');
+      if (err.code === 'auth/unauthorized-domain') {
+        setError("Xatolik: 'tahqiq.uz' domeni Firebase Authentication authorized domains ro'yxatiga qo'shilmagan. Iltimos, Firebase Console -> Authentication -> Settings -> Authorized domains bo'limiga 'tahqiq.uz' domenini qo'shing.");
+      } else if (err.code === 'auth/popup-blocked') {
+        setError("Xatolik: Brauzer o'tish oynasi (popup) bloklandi. Saytga Google orqali kirish uchun pop-up oynalarni faollashtiring.");
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError("Xatolik: Firebase konsolida Google Auth yoqilmagan. Iltimos, Firebase Console -> Authentication -> Sign-in method bo'limida Google tizimini yoqing.");
+      } else if (err.code !== 'auth/popup-closed-by-user') {
+        setError(err.message || 'Google orqali kirishda xatolik yuz berdi');
       }
     } finally {
       setLoading(false);

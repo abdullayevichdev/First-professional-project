@@ -96,8 +96,6 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
     { name: t('nav.home'), path: '/' },
     { name: t('nav.uzb_politics'), path: '/category/uzbekistan' },
     { name: t('nav.global_politics'), path: '/category/global' },
-    { name: t('nav.speech_analysis'), path: '/category/speech' },
-    { name: t('nav.opinion'), path: '/category/opinion' },
     { name: t('nav.glossary'), path: '/glossary' },
     { name: t('nav.about'), path: '/about' },
     { name: 'Maqola yuborish', path: '/submit-article' },
@@ -164,21 +162,6 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
             >
               <Search size={20} />
             </button>
-
-            {/* Language Selector */}
-            <div className="flex items-center px-2 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full border border-navy/5 dark:border-gold/10">
-              {['uz', 'en', 'ru'].map((lng, idx) => (
-                <React.Fragment key={lng}>
-                  <button
-                    onClick={() => changeLanguage(lng)}
-                    className={`uppercase px-2 text-[10px] font-bold tracking-widest transition-all ${i18n.language === lng ? 'text-gold' : 'text-navy/30 dark:text-gold/20 hover:text-navy dark:hover:text-gold'}`}
-                  >
-                    {lng}
-                  </button>
-                  {idx < 2 && <div className="w-[1px] h-2.5 bg-navy/10 dark:bg-gold/10"></div>}
-                </React.Fragment>
-              ))}
-            </div>
           </div>
           
           {user ? (
@@ -411,24 +394,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                 )}
               </nav>
 
-              {/* Language Selector in Menu */}
-              <div className="bg-gray-50 dark:bg-white/5 p-6 rounded-2xl border border-navy/5 dark:border-white/5">
-                <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-navy/40 dark:text-gold/40 mb-6 flex items-center">
-                  <span className="mr-3">Tushunish darajasi</span>
-                  <div className="flex-grow h-[1px] bg-navy/5 dark:bg-gold/10"></div>
-                </div>
-                <div className="flex justify-between items-center bg-white dark:bg-dark-card p-1.5 rounded-full shadow-inner">
-                  {['uz', 'en', 'ru'].map((lng) => (
-                    <button
-                      key={lng}
-                      onClick={() => { changeLanguage(lng); setIsMenuOpen(false); }}
-                      className={`flex-grow py-3 px-4 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${i18n.language === lng ? 'bg-navy dark:bg-gold text-white dark:text-navy shadow-lg' : 'text-navy/40 dark:text-gold/40 hover:text-navy dark:hover:text-white'}`}
-                    >
-                      {lng}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
               {/* Auth / Profile in Menu */}
               <div className="pb-10">

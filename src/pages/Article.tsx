@@ -98,9 +98,9 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
 
   if (!item) return <div className="text-center py-20">{t('article.not_found')}</div>;
 
-  const title = i18n.language === 'en' ? item.title_en : i18n.language === 'ru' ? item.title_ru : item.title_uz;
-  const excerpt = i18n.language === 'en' ? item.excerpt_en : i18n.language === 'ru' ? item.excerpt_ru : item.excerpt_uz;
-  const body = i18n.language === 'en' ? item.body_en : i18n.language === 'ru' ? item.body_ru : item.body_uz;
+  const title = item.title_en || item.title_uz || item.title_ru || '';
+  const excerpt = item.excerpt_en || item.excerpt_uz || item.excerpt_ru || '';
+  const body = item.body_en || item.body_uz || item.body_ru || '';
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { 
