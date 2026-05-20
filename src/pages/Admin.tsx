@@ -10,8 +10,27 @@ import { ContentItem, ArticleSubmission, User as UserType } from '../types';
 import { ADMIN_EMAILS } from '../constants';
 import { db, collection, onSnapshot, query, orderBy, limit } from '../lib/firebase';
 
-const parseDate = (dateString: string) => {
-  if (!dateString) return new Date();
+const parseDate = (dateInput: any) => {
+  if (!dateInput) return new Date();
+  
+  if (typeof dateInput === 'object') {
+    if (typeof dateInput.toDate === 'function') {
+      return dateInput.toDate();
+    }
+    if (typeof dateInput.seconds === 'number') {
+      return new Date(dateInput.seconds * 1000);
+    }
+  }
+  
+  if (dateInput instanceof Date) {
+    return dateInput;
+  }
+  
+  if (typeof dateInput === 'number') {
+    return new Date(dateInput);
+  }
+
+  const dateString = String(dateInput);
   if (dateString.includes('T')) return new Date(dateString);
   return new Date(dateString.replace(' ', 'T') + 'Z');
 };
@@ -822,7 +841,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
-                    {messages.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()).map((msg) => (
+                    {[...messages].sort((a, b) => parseDate(b.sent_at).getTime() - parseDate(a.sent_at).getTime()).map((msg) => (
                       <tr key={msg.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
                         <td className="px-6 py-4 text-sm text-navy dark:text-white font-medium">{msg.to_name}</td>
                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 max-w-md truncate">{msg.message}</td>
@@ -873,7 +892,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                   <tbody className="divide-y divide-navy/5 dark:divide-gold/5">
                     {submissions
                       .filter(s => s.status === submissionFilter)
-                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .sort((a, b) => parseDate(b.created_at).getTime() - parseDate(a.created_at).getTime())
                       .map((sub) => (
                         <tr key={sub.id} className="hover:bg-navy/5 dark:hover:bg-gold/5 transition-colors">
                           <td className="px-6 py-4">
