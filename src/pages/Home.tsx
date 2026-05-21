@@ -1,12 +1,95 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Helmet } from 'react-helmet-async';
 import { ArrowRight, Youtube, BookOpen, MessageSquare, Lock } from 'lucide-react';
 import { ContentItem, User } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
 import { db, collection, query, orderBy, onSnapshot } from '../lib/firebase';
+
+const HERO_SLIDES = [
+  {
+    url: "https://ocdn.eu/pulscms/MDA_/c0f86d8a05ce95338e9d0dcbf6edb30c.jpg",
+    label: {
+      uz: "Siyosiy muzokaralar va strategik sheriklik",
+      ru: "Политические переговоры и стратегическое партнерство",
+      en: "Political Negotiations & Strategic Partnership"
+    }
+  },
+  {
+    url: "https://web-cdnprod.aa.com.tr/uploads/Contents/2019/06/25/thumbs_b_c_4e9669b72237c970af4604c0a40a80c7.jpg?v=200706",
+    label: {
+      uz: "Xalqaro diplomatik muloqot va hamkorlik",
+      ru: "Международный дипломатический диалог и сотрудничество",
+      en: "International Diplomatic Dialogue & Cooperation"
+    }
+  },
+  {
+    url: "https://www.christianitytoday.com/wp-content/uploads/2023/02/133493.jpg?w=1920",
+    label: {
+      uz: "Demokratik institutlar va davlat boshqaruvi",
+      ru: "Демократические институты и госуправление",
+      en: "Democratic Institutions & Governance"
+    }
+  },
+  {
+    url: "https://res.cloudinary.com/ewtn/image/upload/c_fill,w_3840,h_2160,g_auto/f_auto/q_80/v1/images/European_Parliament_Brussels_plenary_sessions_hemicycle.jpg?_a=BAVMn6E70",
+    label: {
+      uz: "Yevropa Parlamenti plenar majlisi",
+      ru: "Пленарное заседание Европейского парламента",
+      en: "European Parliament Plenary Session"
+    }
+  },
+  {
+    url: "https://www.churchtimes.co.uk/media/5705901/3dtr4wd.jpg?width=1000",
+    label: {
+      uz: "Global xavfsizlik va xalqaro huquq munozaralari",
+      ru: "Дебаты по глобальной безопасности и международному праву",
+      en: "Global Security & International Law Debates"
+    }
+  },
+  {
+    url: "https://www.thegef.org/sites/default/files/styles/main_image_content_width/public/2022-03/unep_unea5_meeting.jpg?h=8a2261bd&itok=iJFVTAwx",
+    label: {
+      uz: "BMT Atrof-muhit bo'yicha Assambleyasi majlisi",
+      ru: "Сессия Ассамблеи ООН по окружающей среде",
+      en: "UN Environment Assembly Session"
+    }
+  },
+  {
+    url: "https://azertag.az/files/galleryphoto/2026/1/1200x630/17729094201014443341_1200x630.jpg",
+    label: {
+      uz: "Yuqori darajadagi xalqaro tahliliy sammit",
+      ru: "Международный аналитический саммит высокого уровня",
+      en: "High-Level International Analytical Summit"
+    }
+  },
+  {
+    url: "https://azertag.az/files/2026/1/1200x630/17751257016182521861_1200x630.jpg?v=69ce6298f0624",
+    label: {
+      uz: "Ko'p tomonlama diplomatiya va geosiyosiy tahlil",
+      ru: "Многосторонняя дипломатия и геополитический анализ",
+      en: "Multilateral Diplomacy & Geopolitical Analysis"
+    }
+  },
+  {
+    url: "https://www.orfonline.org/public/uploads/posts/image/1764772180_img-12th-OTS-summit-gabala.jpg",
+    label: {
+      uz: "Turkiy Davlatlar Tashkiloti Oliy Sammiti",
+      ru: "Саммит Организации Тюркских Государств",
+      en: "Summit of the Organisation of Turkic States"
+    }
+  },
+  {
+    url: "https://moderndiplomacy.eu/wp-content/uploads/2023/11/Turkic-States.jpg",
+    label: {
+      uz: "Turkiy dunyo hamkorlik forumi va strategik ittifoq",
+      ru: "Форум сотрудничества тюркского мира и стратегический альянс",
+      en: "Turkic World Cooperation Forum & Strategic Alliance"
+    }
+  }
+];
 
 interface HomeProps {
   user: User | null;
@@ -19,6 +102,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const slideTimer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 15000);
+    return () => clearInterval(slideTimer);
+  }, []);
 
   useEffect(() => {
     if (!db) {
@@ -152,34 +243,78 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
             >
               {featuredContent && (
                 <Link to={`/article/${featuredContent.id}`} className="block">
-                  <div className="relative aspect-[4/3] sm:aspect-[16/9] overflow-hidden mb-6 sm:mb-10 article-card shadow-2xl rounded-lg">
-                    <img 
-                      src={featuredContent.image_url || `https://picsum.photos/seed/${featuredContent.id}/1200/800`} 
-                      alt={getTitle(featuredContent)} 
-                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-[2000ms] ease-out"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/60 to-transparent opacity-90"></div>
-                    <div className="absolute inset-0 p-5 sm:p-10 lg:p-14 flex flex-col justify-end">
+                  <div className="relative h-[280px] xs:h-[320px] sm:h-[380px] md:h-[400px] lg:h-[440px] xl:h-[480px] w-full overflow-hidden mb-5 sm:mb-8 article-card shadow-2xl rounded-lg border border-navy/5 dark:border-white/5">
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.img 
+                        key={activeSlide}
+                        src={HERO_SLIDES[activeSlide].url} 
+                        alt={HERO_SLIDES[activeSlide].label[i18n.language as 'uz' | 'ru' | 'en'] || HERO_SLIDES[activeSlide].label['uz']} 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.8, ease: "easeInOut" }}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-[2000ms] ease-out"
+                        referrerPolicy="no-referrer"
+                      />
+                    </AnimatePresence>
+                    {/* Balanced dark overlay to guarantee content legibility on all devices */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/55 to-navy/10 dark:from-black/95 dark:via-black/55 dark:to-transparent z-10 pointer-events-none"></div>
+                    
+                    {/* Location Badge (Smarter positioning and scale for mobile) */}
+                    <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-20 bg-navy/90 dark:bg-black/90 backdrop-blur-md px-2.5 py-1.5 text-[7px] xs:text-[8px] sm:text-[9.5px] font-mono font-black text-gold uppercase tracking-widest rounded border border-gold/20 shadow-lg pointer-events-none transition-all">
+                      {HERO_SLIDES[activeSlide].label[i18n.language as 'uz' | 'ru' | 'en'] || HERO_SLIDES[activeSlide].label['uz']}
+                    </div>
+
+                    <div className="absolute inset-0 p-4 xs:p-6 sm:p-8 lg:p-12 flex flex-col justify-end z-20">
                       <motion.span 
-                        initial={{ opacity: 0, x: -20 }}
+                        initial={{ opacity: 0, x: -15 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="inline-block bg-gold text-navy px-3 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] mb-3 sm:mb-4 shadow-2xl rounded-sm w-fit"
+                        transition={{ delay: 0.2 }}
+                        className="inline-block bg-gold text-navy px-2.5 py-1.5 text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.25em] mb-2 xs:mb-3 shadow-xl rounded-sm w-fit"
                       >
                         {t('common.featured_analysis')}
                       </motion.span>
-                      <h2 className="text-xl sm:text-4xl lg:text-5xl font-serif font-black text-white leading-[1.1] mb-4 sm:mb-6 group-hover:text-gold transition-colors duration-500 max-w-4xl line-clamp-3">
+                      <h2 className="text-[15px] xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-serif font-black text-white leading-tight mb-2.5 xs:mb-3.5 sm:mb-5 group-hover:text-gold transition-colors duration-500 max-w-4xl line-clamp-3 xs:line-clamp-2">
                         {getTitle(featuredContent)}
                       </h2>
-                      <div className="flex items-center space-x-3 sm:space-x-4 text-white/50 text-[9px] sm:text-[11px] font-bold uppercase tracking-[0.2em]">
-                        <span className="text-white/80">{featuredContent.author}</span>
+                      <div className="flex items-center space-x-2.5 sm:space-x-4 text-white/70 dark:text-gray-300 text-[8px] xs:text-[9px] sm:text-[11px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]">
+                        <span className="text-white/90 dark:text-white">{featuredContent.author}</span>
                         <span className="w-1.5 h-1.5 bg-gold rounded-full"></span>
                         <span>{new Date(featuredContent.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}</span>
                       </div>
                     </div>
+
+                    {/* Progress Slider Indicators */}
+                    <div className="absolute bottom-3 right-3 xs:bottom-4 xs:right-4 sm:bottom-6 sm:right-10 z-30 flex space-x-1.5 sm:space-x-2">
+                      {HERO_SLIDES.map((slide, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setActiveSlide(idx);
+                          }}
+                          className="h-1 sm:h-1.5 rounded-full transition-all duration-300 relative overflow-hidden"
+                          style={{
+                            width: activeSlide === idx ? '22px' : '6px',
+                            backgroundColor: activeSlide === idx ? '#D4AF37' : 'rgba(255, 255, 255, 0.25)'
+                          }}
+                          title={slide.label[i18n.language as 'uz' | 'ru' | 'en'] || slide.label['uz']}
+                        >
+                          {activeSlide === idx && (
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: '100%' }}
+                              transition={{ duration: 15, ease: "linear" }}
+                              className="absolute inset-0 bg-white/40"
+                            />
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-sm sm:text-2xl text-navy/70 dark:text-gray-300 font-serif italic leading-relaxed line-clamp-3 border-l-4 border-gold pl-4 sm:pl-12 py-2">
+                  <p className="text-xs xs:text-sm sm:text-lg md:text-2xl text-navy/70 dark:text-gray-300 font-serif italic leading-relaxed line-clamp-3 border-l-3 sm:border-l-4 border-gold pl-3 sm:pl-10 py-1.5">
                     {getExcerpt(featuredContent)}
                   </p>
                 </Link>
