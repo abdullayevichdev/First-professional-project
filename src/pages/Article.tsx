@@ -8,6 +8,7 @@ import { ContentItem, User } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
 import { db, doc, onSnapshot } from '../lib/firebase';
 import { AuthModal } from '../components/AuthModal';
+import { FALLBACK_ARTICLES } from '../fallbackData';
 
 interface ArticleProps {
   user: User | null;
@@ -24,7 +25,14 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
-    if (!id || !db) return;
+    if (!id) return;
+
+    if (!db) {
+      const fallback = FALLBACK_ARTICLES.find(f => f.id === id);
+      if (fallback) setItem(fallback);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     const unsub = onSnapshot(doc(db, "content", id), (snap) => {
@@ -35,6 +43,18 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
           ...data,
           created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : data.created_at || null
         } as ContentItem);
+      } else {
+        const fallback = FALLBACK_ARTICLES.find(f => f.id === id);
+        if (fallback) {
+          setItem(fallback);
+        }
+      }
+      setLoading(false);
+    }, (err) => {
+      console.warn("Snapshot subscription failed, loading fallback detail:", err);
+      const fallback = FALLBACK_ARTICLES.find(f => f.id === id);
+      if (fallback) {
+        setItem(fallback);
       }
       setLoading(false);
     });
@@ -110,6 +130,31 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
     });
   };
 
+  const getImageUrl = (item: ContentItem) => {
+    if (item.image_url) {
+      if (item.image_url.includes('unsplash.com')) {
+        if (!item.image_url.includes('auto=format')) {
+          return `${item.image_url}&auto=format&fit=crop&q=100&w=1600`;
+        }
+      }
+      return item.image_url;
+    }
+    switch (item.category) {
+      case 'uzbekistan':
+        return 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=1600';
+      case 'global':
+        return 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=100&w=1600';
+      case 'speech':
+        return 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=100&w=1600';
+      case 'historical':
+        return 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=100&w=1600';
+      case 'opinion':
+        return 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=100&w=1600';
+      default:
+        return 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=100&w=1600';
+    }
+  };
+
   return (
     <PageWrapper className="min-h-screen bg-white dark:bg-dark-bg transition-colors duration-500">
       <Helmet>
@@ -175,10 +220,14 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
             className="aspect-[16/9] overflow-hidden article-card shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] rounded-xl"
           >
             <img
-              src={item.image_url || `https://picsum.photos/seed/${item.id}/2000/1200`}
+              src={getImageUrl(item)}
               alt={title}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=1600";
+              }}
             />
           </motion.div>
         </div>

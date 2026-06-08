@@ -7,6 +7,7 @@ import { ArrowRight, Youtube, BookOpen, MessageSquare, Lock } from 'lucide-react
 import { ContentItem, User } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
 import { db, collection, query, orderBy, onSnapshot } from '../lib/firebase';
+import { FALLBACK_ARTICLES } from '../fallbackData';
 
 const HERO_SLIDES = [
   {
@@ -113,7 +114,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
 
   useEffect(() => {
     if (!db) {
-      setError("Firebase setup is incomplete.");
+      setContent(FALLBACK_ARTICLES);
       setLoading(false);
       return;
     }
@@ -133,14 +134,23 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
           created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : data.created_at || new Date().toISOString()
         } as ContentItem);
       });
-      setContent(items);
+
+      // Merge and prioritize Firestore, append fallbacks if missing
+      const merged = [...items];
+      FALLBACK_ARTICLES.forEach(fallback => {
+        if (!merged.some(m => m.id === fallback.id)) {
+          merged.push(fallback);
+        }
+      });
+
+      setContent(merged);
       setLoading(false);
       setError(null);
     }, (err) => {
-      console.error("Content snapshot error:", err);
-      // If snapshot fails, it might be permissions or setup
-      setError("Ma'lumotlarni real-vaqtda yuklashda xatolik yuz berdi.");
+      console.warn("Content snapshot error, utilizing fallback dataset:", err);
+      setContent(FALLBACK_ARTICLES);
       setLoading(false);
+      setError(null); // Managed gracefully
     });
 
     return () => unsubscribe();
@@ -152,6 +162,33 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
 
   const getExcerpt = (item: ContentItem) => {
     return item.excerpt_en || item.excerpt_uz || item.excerpt_ru || '';
+  };
+
+  const getImageUrl = (item: ContentItem) => {
+    if (item.image_url) {
+      if (item.image_url.includes('unsplash.com')) {
+        // Force high resolution and webp format for Unsplash URLs
+        if (!item.image_url.includes('auto=format')) {
+          return `${item.image_url}&auto=format&fit=crop&q=100&w=1200`;
+        }
+      }
+      return item.image_url;
+    }
+    // High-resolution default fallback matching category of the content
+    switch (item.category) {
+      case 'uzbekistan':
+        return 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=1200';
+      case 'global':
+        return 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=100&w=1200';
+      case 'speech':
+        return 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=100&w=1200';
+      case 'historical':
+        return 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=100&w=1200';
+      case 'opinion':
+        return 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=100&w=1200';
+      default:
+        return 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=100&w=1200';
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-navy"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div></div>;
@@ -243,7 +280,7 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
             >
               {featuredContent && (
                 <Link to={`/article/${featuredContent.id}`} className="block">
-                  <div className="relative h-[280px] xs:h-[320px] sm:h-[380px] md:h-[400px] lg:h-[440px] xl:h-[480px] w-full overflow-hidden mb-5 sm:mb-8 article-card shadow-2xl rounded-lg border border-navy/5 dark:border-white/5">
+                  <div className="relative aspect-[14/10] xs:aspect-[16/10] md:aspect-video lg:aspect-[21/9] w-full overflow-hidden mb-4 sm:mb-6 article-card shadow-2xl rounded-lg border border-navy/5 dark:border-white/5">
                     <AnimatePresence mode="popLayout" initial={false}>
                       <motion.img 
                         key={activeSlide}
@@ -261,25 +298,25 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                     <div className="absolute inset-0 bg-gradient-to-t from-navy/95 via-navy/55 to-navy/10 dark:from-black/95 dark:via-black/55 dark:to-transparent z-10 pointer-events-none"></div>
                     
                     {/* Location Badge (Smarter positioning and scale for mobile) */}
-                    <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-20 bg-navy/90 dark:bg-black/90 backdrop-blur-md px-2.5 py-1.5 text-[7px] xs:text-[8px] sm:text-[9.5px] font-mono font-black text-gold uppercase tracking-widest rounded border border-gold/20 shadow-lg pointer-events-none transition-all">
+                    <div className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-20 bg-navy/90 dark:bg-black/90 backdrop-blur-md px-2 py-1 text-[6.5px] xs:text-[7.5px] sm:text-[9px] font-mono font-black text-gold uppercase tracking-widest rounded border border-gold/20 shadow-lg pointer-events-none transition-all">
                       {HERO_SLIDES[activeSlide].label[i18n.language as 'uz' | 'ru' | 'en'] || HERO_SLIDES[activeSlide].label['uz']}
                     </div>
 
-                    <div className="absolute inset-0 p-4 xs:p-6 sm:p-8 lg:p-12 flex flex-col justify-end z-20">
+                    <div className="absolute inset-0 p-3 xs:p-5 sm:p-8 lg:p-10 flex flex-col justify-end z-20">
                       <motion.span 
                         initial={{ opacity: 0, x: -15 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="inline-block bg-gold text-navy px-2.5 py-1.5 text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.25em] mb-2 xs:mb-3 shadow-xl rounded-sm w-fit"
+                        className="inline-block bg-gold text-navy px-2 py-1 text-[7px] xs:text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.25em] mb-1.5 xs:mb-2 shadow-xl rounded-sm w-fit"
                       >
                         {t('common.featured_analysis')}
                       </motion.span>
-                      <h2 className="text-[15px] xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-serif font-black text-white leading-tight mb-2.5 xs:mb-3.5 sm:mb-5 group-hover:text-gold transition-colors duration-500 max-w-4xl line-clamp-3 xs:line-clamp-2">
+                      <h2 className="text-[12px] xs:text-sm sm:text-lg md:text-xl lg:text-2xl xl:text-3.5xl font-serif font-black text-white leading-tight mb-1.5 xs:mb-2.5 sm:mb-4 group-hover:text-gold transition-colors duration-500 max-w-3xl line-clamp-2">
                         {getTitle(featuredContent)}
                       </h2>
-                      <div className="flex items-center space-x-2.5 sm:space-x-4 text-white/70 dark:text-gray-300 text-[8px] xs:text-[9px] sm:text-[11px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]">
-                        <span className="text-white/90 dark:text-white">{featuredContent.author}</span>
-                        <span className="w-1.5 h-1.5 bg-gold rounded-full"></span>
+                      <div className="flex items-center space-x-2 sm:space-x-3 text-white/70 dark:text-gray-300 text-[7px] xs:text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.12em] sm:tracking-[0.18em]">
+                        <span className="text-white/95 dark:text-white">{featuredContent.author}</span>
+                        <span className="w-1 h-1 bg-gold rounded-full"></span>
                         <span>{new Date(featuredContent.created_at).toLocaleDateString(i18n.language === 'uz' ? 'uz-UZ' : i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}</span>
                       </div>
                     </div>
@@ -360,10 +397,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   <Link to={`/article/${uzbPolitics[0].id}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-center">
                     <div className="md:col-span-5 aspect-[16/10] sm:aspect-video overflow-hidden article-card shadow-md rounded-xl">
                       <img 
-                        src={uzbPolitics[0].image_url || `https://picsum.photos/seed/${uzbPolitics[0].id}/800/500`} 
+                        src={getImageUrl(uzbPolitics[0])} 
                         alt={getTitle(uzbPolitics[0])} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s] ease-out" 
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=100&w=1200";
+                        }}
                       />
                     </div>
                     <div className="md:col-span-7 flex flex-col justify-between h-full py-1 text-left">
@@ -399,10 +440,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                         <div>
                           <div className="aspect-[16/10] overflow-hidden mb-4 article-card shadow-sm rounded-lg">
                             <img 
-                              src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} 
+                              src={getImageUrl(item)} 
                               alt={getTitle(item)} 
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s] ease-out" 
                               referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=100&w=800";
+                              }}
                             />
                           </div>
                           <h3 className="text-base sm:text-lg font-serif font-bold text-navy dark:text-white mb-2.5 group-hover:text-gold transition-colors leading-tight">
@@ -508,10 +553,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   <Link to={`/article/${globalPolitics[0].id}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-center h-full">
                     <div className="md:col-span-5 aspect-[16/10] sm:aspect-video overflow-hidden rounded-xl shadow-md">
                       <img 
-                        src={globalPolitics[0].image_url || `https://picsum.photos/seed/${globalPolitics[0].id}/800/500`} 
+                        src={getImageUrl(globalPolitics[0])} 
                         alt={getTitle(globalPolitics[0])} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=1200";
+                        }}
                       />
                     </div>
                     <div className="md:col-span-7 flex flex-col justify-between h-full py-1 text-left">
@@ -546,10 +595,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                         <div>
                           <div className="aspect-[16/10] overflow-hidden mb-4 article-card shadow-sm rounded-lg">
                             <img 
-                              src={item.image_url || `https://picsum.photos/seed/${item.id}/600/400`} 
+                              src={getImageUrl(item)} 
                               alt={getTitle(item)} 
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
                               referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=800";
+                              }}
                             />
                           </div>
                           <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-gold mb-1.5 block">{t('common.international_relations')}</span>
@@ -604,10 +657,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                   <Link to={`/article/${historicalAnalysis[0].id}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-center h-full">
                     <div className="md:col-span-5 aspect-[16/10] sm:aspect-video overflow-hidden rounded-xl shadow-md">
                       <img 
-                        src={historicalAnalysis[0].image_url || `https://picsum.photos/seed/${historicalAnalysis[0].id}/800/500`} 
+                        src={getImageUrl(historicalAnalysis[0])} 
                         alt={getTitle(historicalAnalysis[0])} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=100&w=1200";
+                        }}
                       />
                     </div>
                     <div className="md:col-span-7 flex flex-col justify-between h-full py-1 text-left">
@@ -642,10 +699,14 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
                       <Link to={`/article/${item.id}`} className="block">
                         <div className="aspect-square overflow-hidden mb-3.5 rounded-md shadow-sm">
                           <img 
-                            src={item.image_url || `https://picsum.photos/seed/${item.id}/400/400`} 
+                            src={getImageUrl(item)} 
                             alt={getTitle(item)} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
                             referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=100&w=600";
+                            }}
                           />
                         </div>
                         <h3 className="text-xs sm:text-sm font-serif font-bold text-navy dark:text-white mb-1 group-hover:text-gold transition-colors leading-tight line-clamp-2 uppercase tracking-tight">

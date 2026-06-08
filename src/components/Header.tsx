@@ -248,41 +248,62 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                 </button>
               </form>
 
-              {searchResults.length > 0 && (
-                <div className="mt-12 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {searchResults.map((item) => (
-                    <Link
-                      key={item.id}
-                      to={`/article/${item.id}`}
-                      onClick={() => setIsSearchOpen(false)}
-                      className="flex space-x-4 group"
-                    >
-                      <div className="w-24 h-24 flex-shrink-0 bg-gray-100 dark:bg-white/5 rounded-lg overflow-hidden">
-                        <img 
-                          src={item.image_url || `https://picsum.photos/seed/${item.id}/200/200`} 
-                          alt="" 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          referrerPolicy="no-referrer"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (target.src.includes('unsplash.com')) {
-                              target.src = `https://picsum.photos/seed/${item.id}/200/200`;
-                            } else {
-                              target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=200&h=200`;
-                            }
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-serif font-bold text-navy dark:text-white group-hover:text-gold transition-colors line-clamp-2">
-                          {i18n.language === 'en' ? item.title_en : i18n.language === 'ru' ? item.title_ru : item.title_uz}
-                        </h4>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-2">{item.category}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
+              {searchResults.length > 0 && (() => {
+                const getImageUrl = (item: ContentItem) => {
+                  if (item.image_url) {
+                    if (item.image_url.includes('unsplash.com') && !item.image_url.includes('auto=format')) {
+                      return `${item.image_url}&auto=format&fit=crop&q=100&w=600`;
+                    }
+                    return item.image_url;
+                  }
+                  switch (item.category) {
+                    case 'uzbekistan':
+                      return 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=600';
+                    case 'global':
+                      return 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=100&w=600';
+                    case 'speech':
+                      return 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=100&w=600';
+                    case 'historical':
+                      return 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=100&w=600';
+                    case 'opinion':
+                      return 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=100&w=600';
+                    default:
+                      return 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=100&w=600';
+                  }
+                };
+
+                return (
+                  <div className="mt-12 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {searchResults.map((item) => (
+                      <Link
+                        key={item.id}
+                        to={`/article/${item.id}`}
+                        onClick={() => setIsSearchOpen(false)}
+                        className="flex space-x-4 group"
+                      >
+                        <div className="w-24 h-24 flex-shrink-0 bg-gray-100 dark:bg-white/5 rounded-lg overflow-hidden">
+                          <img 
+                            src={getImageUrl(item)} 
+                            alt="" 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=200";
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-serif font-bold text-navy dark:text-white group-hover:text-gold transition-colors line-clamp-2">
+                            {i18n.language === 'en' ? item.title_en : i18n.language === 'ru' ? item.title_ru : item.title_uz}
+                          </h4>
+                          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-2">{item.category}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                );
+              })()}
               
               {searchQuery && searchResults.length === 0 && !isSearching && (
                 <p className="text-center mt-8 text-gray-400 font-serif italic">Natija topilmadi</p>

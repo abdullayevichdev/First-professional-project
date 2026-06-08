@@ -904,11 +904,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                                   referrerPolicy="no-referrer"
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement;
-                                    if (target.src.includes('unsplash.com')) {
-                                      target.src = `https://picsum.photos/seed/${sub.id}/400/300`;
-                                    } else {
-                                      target.src = `https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=400&h=300`;
-                                    }
+                                    target.src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=100&w=400";
                                   }}
                                 />
                               ) : (
@@ -1117,11 +1113,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                                 referrerPolicy="no-referrer"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
-                                  if (target.src.includes('unsplash.com')) {
-                                    target.src = `https://picsum.photos/seed/${item.id}/400/300`;
-                                  } else {
-                                    target.src = `https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=400&h=300`;
-                                  }
+                                  target.src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=100&w=400";
                                 }}
                               />
                             ) : (
@@ -1224,11 +1216,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                           referrerPolicy="no-referrer"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            if (target.src.includes('unsplash.com')) {
-                              target.src = `https://picsum.photos/seed/${selectedSubmission.id}/800/450`;
-                            } else {
-                              target.src = `https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=800&h=450`;
-                            }
+                            target.src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=100&w=800";
                           }}
                         />
                       </div>

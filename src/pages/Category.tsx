@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { ContentItem } from '../types';
 import { PageWrapper } from '../components/PageWrapper';
+import { FALLBACK_ARTICLES } from '../fallbackData';
 
 export const Category: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,16 +15,27 @@ export const Category: React.FC = () => {
   useEffect(() => {
     const fetchItems = async () => {
       setLoading(true);
+      const matchedFallbacks = FALLBACK_ARTICLES.filter(item => item.category === id);
       try {
         const res = await fetch(`/api/content?category=${id}`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data)) {
-            setItems(data);
+          if (Array.isArray(data) && data.length > 0) {
+            const merged = [...data];
+            matchedFallbacks.forEach(fallback => {
+              if (!merged.some(m => m.id === fallback.id)) {
+                merged.push(fallback);
+              }
+            });
+            setItems(merged);
+            setLoading(false);
+            return;
           }
         }
+        setItems(matchedFallbacks);
       } catch (error) {
-        console.error("Failed to fetch category items:", error);
+        console.warn("Failed to fetch trans-boundary category items, utilizing static dataset:", error);
+        setItems(matchedFallbacks);
       } finally {
         setLoading(false);
       }
@@ -37,6 +49,31 @@ export const Category: React.FC = () => {
 
   const getExcerpt = (item: ContentItem) => {
     return item.excerpt_en || item.excerpt_uz || item.excerpt_ru || '';
+  };
+
+  const getImageUrl = (item: ContentItem) => {
+    if (item.image_url) {
+      if (item.image_url.includes('unsplash.com')) {
+        if (!item.image_url.includes('auto=format')) {
+          return `${item.image_url}&auto=format&fit=crop&q=100&w=1200`;
+        }
+      }
+      return item.image_url;
+    }
+    switch (item.category) {
+      case 'uzbekistan':
+        return 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=100&w=1200';
+      case 'global':
+        return 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=1200';
+      case 'speech':
+        return 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=100&w=1200';
+      case 'historical':
+        return 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?auto=format&fit=crop&q=100&w=1200';
+      case 'opinion':
+        return 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=100&w=1200';
+      default:
+        return 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=100&w=1200';
+    }
   };
 
   return (
@@ -72,17 +109,13 @@ export const Category: React.FC = () => {
               <Link to={`/article/${item.id}`} className="group flex flex-col">
                 <div className="aspect-video bg-white dark:bg-black/20 article-card mb-6 sm:mb-8 shadow-lg">
                   <img 
-                    src={item.image_url || `https://picsum.photos/seed/${item.id}/800/450`} 
+                    src={getImageUrl(item)} 
                     alt={getTitle(item)} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      if (target.src.includes('unsplash.com')) {
-                        target.src = `https://picsum.photos/seed/${item.id}/800/450`;
-                      } else {
-                        target.src = `https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800&h=450`;
-                      }
+                      target.src = "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=100&w=800";
                     }}
                   />
                 </div>

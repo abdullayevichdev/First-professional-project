@@ -60,17 +60,13 @@ export const About: React.FC = () => {
             className="aspect-square bg-navy/5 dark:bg-black/20 article-card shadow-2xl"
           >
             <img 
-              src="https://picsum.photos/seed/mission/800/800" 
+              src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=100&w=800" 
               alt="Mission" 
               className="w-full h-full object-cover" 
               referrerPolicy="no-referrer" 
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                if (target.src.includes('unsplash.com')) {
-                  target.src = `https://picsum.photos/seed/mission/800/800`;
-                } else {
-                  target.src = `https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800&h=800`;
-                }
+                target.src = "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=100&w=800";
               }}
             />
           </motion.div>
