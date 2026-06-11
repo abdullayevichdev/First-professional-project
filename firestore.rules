@@ -1,8 +1,78 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Default-deny safety net
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && 
+             request.auth.token.email_verified == true && 
+             request.auth.token.email in [
+               'mansur.ox7@gmail.com', 
+               'abdulxayavazxanov2012@gmail.com'
+             ];
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Allow read so that authenticated sessions (including our server's anonymous session & other users) can query profiles
+      allow read: if isSignedIn();
+      
+      // Allow create only for own user ID
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Allow update only for own user ID or admin
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      
+      allow delete: if isAdmin();
+    }
+
+    // Content Collection (News & Articles) - Public Read-Only, Admin write
+    match /content/{contentId} {
+      allow read: if true; // Public read is normal for a newspaper
+      allow write: if isAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && 
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+    }
+
+    // Submissions (User articles)
+    match /submissions/{subId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Newsletter (Public can register)
+    match /newsletter/{subId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Activity Logs
+    match /activity/{activityId} {
+      allow create: if true; // Let activities be logged
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Messages (Direct communication)
+    match /messages/{msgId} {
+      allow read: if isSignedIn() && (resource.data.to == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
   }
 }

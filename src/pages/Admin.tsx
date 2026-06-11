@@ -257,7 +257,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
       });
       
       if (res.ok) {
-        alert('Yangi ma\'lumot muvaffaqiyatli qo\'shildi va foydalanuvchilarga xabar yuborildi!');
+        alert('New content successfully added and notifications sent to users!');
         fetchData();
         setContentForm({
           type: 'article',
@@ -276,11 +276,11 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
           video_url: ''
         });
       } else {
-        alert('Xatolik yuz berdi');
+        alert('An error occurred');
       }
     } catch (err) {
       console.error(err);
-      alert('Server xatosi');
+      alert('Server error');
     } finally {
       setLoading(false);
     }
@@ -298,7 +298,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
         fetchData();
         setDeleteConfirmId(null);
       } else {
-        console.error('O\'chirishda xatolik');
+        console.error('Error deleting');
       }
     } catch (err) {
       console.error(err);
@@ -318,12 +318,12 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
       });
       
       if (res.ok) {
-        alert(status === 'accepted' ? 'Maqola qabul qilindi va saytga joylashtirildi!' : 'Maqola rad etildi.');
+        alert(status === 'accepted' ? 'Article approved and published to site!' : 'Article rejected.');
         setSelectedSubmission(null);
         setFeedbackText('');
         fetchData();
       } else {
-        alert('Xatolik yuz berdi');
+        alert('An error occurred');
       }
     } catch (err) {
       console.error(err);
@@ -345,7 +345,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
         setSelectedSubmission(null);
         fetchData();
       } else {
-        console.error("O'chirishda xatolik yuz berdi");
+        console.error("Error occurred while deleting");
       }
     } catch (err) {
       console.error(err);
@@ -956,27 +956,27 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
             <form onSubmit={handleAddContent} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Turi</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</label>
                   <select 
                     value={contentForm.type}
                     onChange={(e) => setContentForm({...contentForm, type: e.target.value})}
                     className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
                   >
-                    <option value="article">Maqola</option>
+                    <option value="article">Article</option>
                     <option value="video">Video</option>
                   </select>
                 </div>
                 <div className="space-y-4">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Bo'lim</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Section</label>
                   <select 
                     value={contentForm.category}
                     onChange={(e) => setContentForm({...contentForm, category: e.target.value})}
                     className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-gold outline-none rounded transition-all"
                   >
-                    <option value="uzbekistan">O'zbekiston Siyosati</option>
-                    <option value="global">Global Siyosat</option>
-                    <option value="opinion">Mulohaza va Tahlil</option>
-                    <option value="historical">Tarixiy Kontekst</option>
+                    <option value="uzbekistan">Uzbekistan Politics</option>
+                    <option value="global">Global Politics</option>
+                    <option value="opinion">Opinion & Analysis</option>
+                    <option value="historical">Historical Context</option>
                   </select>
                 </div>
               </div>
@@ -1168,7 +1168,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                   {selectedSubmission.userName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-white font-bold uppercase tracking-widest text-sm">{selectedSubmission.userName} maqolasi</h3>
+                  <h3 className="text-white font-bold uppercase tracking-widest text-sm">{selectedSubmission.userName}'s article</h3>
                   <p className="text-white/50 text-[10px] uppercase tracking-widest">{new Date(selectedSubmission.created_at).toLocaleString()}</p>
                 </div>
               </div>
@@ -1233,12 +1233,12 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
 
               {selectedSubmission.status === 'pending' && (
                 <div className="space-y-4">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Admin fikri (ixtiyoriy, rad etilganda ko'rinadi)</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Admin Feedback (optional, visible when rejected)</label>
                   <textarea
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
                     className="w-full h-24 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-dark-bg focus:outline-none focus:border-gold transition-colors resize-none"
-                    placeholder="Maqola haqida fikringiz..."
+                    placeholder="Your feedback about this article..."
                   ></textarea>
                 </div>
               )}
@@ -1252,7 +1252,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                   className="px-8 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all flex items-center space-x-2 disabled:opacity-50"
                 >
                   <XCircle size={16} />
-                  <span>Rad etish</span>
+                  <span>Reject</span>
                 </button>
                 <button 
                   onClick={() => handleUpdateSubmission(selectedSubmission.id, 'accepted')}
@@ -1260,7 +1260,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                   className="px-8 py-3 bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center space-x-2 disabled:opacity-50"
                 >
                   <CheckCircle size={16} />
-                  <span>Qabul qilish va joylashtirish</span>
+                  <span>Approve & Publish</span>
                 </button>
               </div>
             ) : selectedSubmission.status !== 'pending' ? (
@@ -1271,7 +1271,7 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
                   className="px-8 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all flex items-center space-x-2 disabled:opacity-50"
                 >
                   <Trash2 size={16} />
-                  <span>Maqolani o'chirish</span>
+                  <span>Delete Article</span>
                 </button>
               </div>
             ) : null}
@@ -1367,8 +1367,8 @@ export const Admin: React.FC<{ user: UserType | null }> = ({ user }) => {
               <div className="w-20 h-20 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={32} className="text-red-500" />
               </div>
-              <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-4">Maqolani o'chirish</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-8">Haqiqatan ham ushbu maqolani o'chirib tashlamoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi va saytdan ham o'chiriladi.</p>
+              <h3 className="text-2xl font-serif font-bold text-navy dark:text-white mb-4">Delete Article</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8">Are you sure you want to delete this article? This action is irreversible and the article will be completely removed from the site.</p>
               
               <div className="flex flex-col space-y-3">
                 <button 

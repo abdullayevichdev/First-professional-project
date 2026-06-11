@@ -290,7 +290,7 @@ const checkDb = async (req: any, res: any, next: any) => {
 
   if (!db) {
     // If it's a critical path, fail. If it's a background path, maybe skip?
-    if (req.path.startsWith("/auth/me") || req.path.startsWith("/content")) {
+    if (req.path.includes("/auth/me") || req.path.includes("/content")) {
        return res.status(503).json({ 
         error: "Service Temporarily Unavailable", 
         details: "Firebase connection is taking longer than expected. Please refresh in a few seconds.",
@@ -595,8 +595,9 @@ app.get("/api/auth/me", authenticateToken, async (req: any, res) => {
       last_login: data.last_login?.toDate?.()?.toISOString() || null,
       created_at: data.created_at?.toDate?.()?.toISOString() || null
     });
-  } catch (e) {
-    res.status(500).json({ error: "Server error" });
+  } catch (e: any) {
+    console.error("Error in /api/auth/me:", e);
+    res.status(500).json({ error: "Server error", details: e.message || String(e) });
   }
 });
 

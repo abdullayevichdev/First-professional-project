@@ -78,13 +78,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     // Basic validation
     if (mode === 'register') {
       if (formData.password.length < 6) {
-        setError('Parol eng kamida 6ta belgidan iborat bo\'lishi kerak');
-        toast.error('Parol juda qisqa');
+        setError('Password must be at least 6 characters long');
+        toast.error('Password is too short');
         return;
       }
       if (formData.password !== formData.confirmPassword) {
-        setError('Parollar mos kelmadi');
-        toast.error('Parollar mos kelmadi');
+        setError('Passwords do not match');
+        toast.error('Passwords do not match');
         return;
       }
     }
@@ -106,7 +106,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           localStorage.setItem('auth_token', data.token);
         }
         
-        toast.success(mode === 'login' ? 'Tizimga kirdingiz!' : 'Muvaffaqiyatli ro\'yxatdan o\'tdingiz!');
+        toast.success(mode === 'login' ? 'Successfully logged in!' : 'Successfully registered!');
         
         // Reset form
         setFormData({ phone: '', username: '', password: '', confirmPassword: '' });
@@ -114,13 +114,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         onSuccess(data.user);
         onClose();
       } else {
-        const errorMsg = data.error || 'Autentifikatsiya xatosi';
+        const errorMsg = data.error || 'Authentication error';
         setError(errorMsg);
         toast.error(errorMsg);
       }
     } catch (err) {
       console.error('Auth error:', err);
-      const errTxt = 'Server bilan bog\'lanishda xatolik yuz berdi';
+      const errTxt = 'An error occurred while connecting to the server';
       setError(errTxt);
       toast.error(errTxt);
     } finally {
@@ -159,18 +159,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         onSuccess(data.user);
         onClose();
       } else {
-        setError(data.error || 'Google orqali kirishda xatopik yuz berdi');
+        setError(data.error || 'An error occurred during Google sign-in');
       }
     } catch (err: any) {
       console.error('Google auth error:', err);
       if (err.code === 'auth/unauthorized-domain') {
-        setError("Xatolik: 'tahqiq.uz' domeni Firebase Authentication authorized domains ro'yxatiga qo'shilmagan. Iltimos, Firebase Console -> Authentication -> Settings -> Authorized domains bo'limiga 'tahqiq.uz' domenini qo'shing.");
+        setError("Error: 'tahqiq.uz' is not an authorized domain. Please add 'tahqiq.uz' to Firebase Console -> Authentication -> Settings -> Authorized domains.");
       } else if (err.code === 'auth/popup-blocked') {
-        setError("Xatolik: Brauzer o'tish oynasi (popup) bloklandi. Saytga Google orqali kirish uchun pop-up oynalarni faollashtiring.");
+        setError("Error: Pop-up blocked. Please enable pop-ups to sign in with Google.");
       } else if (err.code === 'auth/operation-not-allowed') {
-        setError("Xatolik: Firebase konsolida Google Auth yoqilmagan. Iltimos, Firebase Console -> Authentication -> Sign-in method bo'limida Google tizimini yoqing.");
+        setError("Error: Google login is not enabled in Firebase Authentication. Please enable Google sign-in method in Firebase Console.");
       } else if (err.code !== 'auth/popup-closed-by-user') {
-        setError(err.message || 'Google orqali kirishda xatolik yuz berdi');
+        setError(err.message || 'An error occurred during Google sign-in');
       }
     } finally {
       setLoading(false);
@@ -217,7 +217,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                     mode === 'login' ? "text-gold" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                   )}
                 >
-                  Kirish
+                  Sign In
                   {mode === 'login' && (
                     <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
                   )}
@@ -229,7 +229,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                     mode === 'register' ? "text-gold" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                   )}
                 >
-                  Ro'yxatdan o'tish
+                  Register
                   {mode === 'register' && (
                     <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gold" />
                   )}
@@ -242,10 +242,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                     T
                   </div>
                   <h2 className="text-2xl font-serif font-bold text-navy dark:text-white mb-1">
-                    {mode === 'login' ? 'Xush kelibsiz' : 'Tahqiq Hamjamiyati'}
+                    {mode === 'login' ? 'Welcome Back' : 'Tahqiq Community'}
                   </h2>
                   <p className="text-gray-500 dark:text-gray-400 text-[9px] font-bold uppercase tracking-[0.3em]">
-                    {mode === 'login' ? 'Profilingizga kiring' : 'Yangi profil yarating'}
+                    {mode === 'login' ? 'Sign in to your profile' : 'Create a new profile'}
                   </p>
                 </div>
 
@@ -261,7 +261,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Login</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Username</label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} strokeWidth={1.5} />
                       <input
@@ -271,7 +271,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                         name="username"
                         value={formData.username}
                         onChange={handleInputChange}
-                        placeholder="foydalanuvchinomi@example.com"
+                        placeholder="username"
                         className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold focus:bg-white outline-none rounded-2xl text-navy dark:text-white transition-all font-medium text-[13px] disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-400"
                       />
                     </div>
@@ -279,7 +279,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
                   {mode === 'register' && (
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Telefon</label>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Phone</label>
                       <div className="relative">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} strokeWidth={1.5} />
                         <input
@@ -289,7 +289,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                           name="phone"
                           value={formData.phone}
                           onChange={handleInputChange}
-                          placeholder="+998 99"
+                          placeholder="+998 90 123 45 67"
                           className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-gold focus:ring-1 focus:ring-gold focus:bg-white outline-none rounded-2xl text-navy dark:text-white transition-all font-medium text-[13px] disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-gray-400"
                         />
                       </div>
@@ -297,7 +297,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                   )}
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Parol</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Password</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} strokeWidth={1.5} />
                       <input
@@ -322,7 +322,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
                   {mode === 'register' && (
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Parolni tasdiqlash</label>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] ml-1">Confirm Password</label>
                       <div className="relative">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} strokeWidth={1.5} />
                         <input
@@ -341,16 +341,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
                   <div className="pt-6 space-y-4">
                     <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full py-4 bg-[#C6A861] hover:bg-[#b59853] text-navy font-bold rounded-2xl shadow-lg shadow-gold/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
+                       type="submit"
+                       disabled={loading}
+                       className="w-full py-4 bg-[#C6A861] hover:bg-[#b59853] text-navy font-bold rounded-2xl shadow-lg shadow-gold/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
                     >
                       {loading ? (
                         <Loader2 className="animate-spin" size={20} />
                       ) : (
                         <>
                           <span className="uppercase tracking-[0.15em] text-[11px] font-bold">
-                            {mode === 'login' ? 'Kirish' : "Ro'yxatdan o'tish"}
+                            {mode === 'login' ? 'Sign In' : 'Register'}
                           </span>
                           <ArrowRight size={18} strokeWidth={2} className="group-hover:translate-x-1.5 transition-transform" />
                         </>
@@ -362,7 +362,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                         <div className="w-full border-t border-gray-200 dark:border-white/10"></div>
                       </div>
                       <div className="relative flex justify-center text-[10px] uppercase tracking-[0.2em] font-bold">
-                        <span className="px-4 bg-white dark:bg-[#0A0A0B] text-gray-400">Yoki</span>
+                        <span className="px-4 bg-white dark:bg-[#0A0A0B] text-gray-400">Or</span>
                       </div>
                     </div>
 
@@ -390,7 +390,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                       </svg>
-                      <span className="uppercase tracking-[0.1em] text-[11px] font-bold text-gray-700 dark:text-gray-200">Google orqali kirish</span>
+                      <span className="uppercase tracking-[0.1em] text-[11px] font-bold text-gray-700 dark:text-gray-200">Continue with Google</span>
                     </button>
                   </div>
 
@@ -401,8 +401,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                       className="text-[9px] font-bold text-gray-400 hover:text-gold uppercase tracking-[0.2em] transition-colors"
                     >
                       {mode === 'login' 
-                        ? "Hisobingiz yo'qmi? Ro'yxatdan o'ting" 
-                        : "Allaqachon hisobingiz bormi? Kiring"}
+                        ? "Don't have an account? Register" 
+                        : "Already have an account? Sign In"}
                     </button>
                   </div>
                 </form>

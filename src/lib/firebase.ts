@@ -43,7 +43,7 @@ if (db) {
     const testDoc = doc(db, 'system', 'connection_test');
     getDocFromServer(testDoc).catch(err => {
       if (err.message.includes('unavailable')) {
-        console.error("Firestore ga ulanib bo'lmadi. Tarmoqni tekshiring.");
+        console.error("Could not connect to Firestore. Please check your network connection.");
       }
     });
   });

@@ -223,8 +223,8 @@ export const Home: React.FC<HomeProps> = ({ user }) => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-navy text-white p-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Ma'lumot topilmadi</h2>
-          <p className="opacity-60">Hozircha hech qanday maqola mavjud emas.</p>
+          <h2 className="text-2xl font-bold mb-4">No content found</h2>
+          <p className="opacity-60">No articles are currently available.</p>
         </div>
       </div>
     );

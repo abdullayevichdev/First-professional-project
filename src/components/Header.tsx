@@ -98,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
     { name: t('nav.global_politics'), path: '/category/global' },
     { name: t('nav.glossary'), path: '/glossary' },
     { name: t('nav.about'), path: '/about' },
-    { name: 'Maqola yuborish', path: '/submit-article' },
+    { name: 'Submit Article', path: '/submit-article' },
   ];
 
   const [showLoginModal, setShowLoginModal] = React.useState(false);
@@ -240,7 +240,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('common.search_placeholder') || "Maqolalarni qidirish..."}
+                  placeholder={t('common.search_placeholder') || "Search articles..."}
                   className="w-full bg-gray-50 dark:bg-white/5 border-b-2 border-navy/10 dark:border-gold/20 focus:border-gold outline-none py-4 px-6 text-2xl font-serif text-navy dark:text-white transition-all"
                 />
                 <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gold">
@@ -306,7 +306,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
               })()}
               
               {searchQuery && searchResults.length === 0 && !isSearching && (
-                <p className="text-center mt-8 text-gray-400 font-serif italic">Natija topilmadi</p>
+                <p className="text-center mt-8 text-gray-400 font-serif italic">No result found</p>
               )}
             </div>
           </motion.div>
@@ -428,7 +428,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                       <div className="flex-grow">
                         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gold/60 dark:text-gold/40 mb-1.5 flex items-center">
                           <span className="w-2 h-2 bg-gold rounded-full mr-2 animate-pulse"></span>
-                          Profilingiz
+                          Your Profile
                         </p>
                         <p className="text-xl font-serif font-bold text-navy dark:text-white leading-tight">{user.name}</p>
                       </div>
@@ -439,13 +439,13 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                         onClick={() => setIsMenuOpen(false)} 
                         className="btn-premium py-4 w-full flex justify-center items-center text-[10px] tracking-widest shadow-none"
                       >
-                        PROFIL
+                        PROFILE
                       </Link>
                       <button 
                         onClick={() => { onLogout(); setIsMenuOpen(false); }} 
                         className="w-full text-red-500 font-bold uppercase tracking-[0.2em] text-[10px] bg-red-50 dark:bg-red-500/5 hover:bg-red-100 dark:hover:bg-red-500/10 rounded-2xl transition-all border border-red-500/10 py-4 flex justify-center items-center"
                       >
-                        CHIQISH
+                        LOG OUT
                       </button>
                     </div>
                   </div>
@@ -455,7 +455,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onLoginSuccess }
                     className="btn-premium w-full py-6 text-[10px] tracking-[0.3em] shadow-2xl shadow-gold/20 flex justify-center items-center"
                   >
                     <User size={18} className="mr-3" />
-                    <span>HAMYONNI ULASH / KIRISH</span>
+                    <span>SIGN IN</span>
                   </button>
                 )}
               </div>

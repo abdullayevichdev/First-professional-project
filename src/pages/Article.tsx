@@ -290,7 +290,7 @@ export const Article: React.FC<ArticleProps> = ({ user }) => {
                         {t('article.exclusive_analysis') || "Eksklyuziv Tahlil"}
                       </h2>
                       <p className="text-base sm:text-xl text-navy/60 dark:text-gray-400 mb-12 sm:mb-16 max-w-lg mx-auto font-light leading-relaxed">
-                        Ushbu maqolaning to'liq matni va chuqur siyosiy tahlilini o'qish uchun tizimga kirishingiz lozim.
+                        You must sign in to read the full text of this article and its in-depth political analysis.
                       </p>
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12">
                         <button
