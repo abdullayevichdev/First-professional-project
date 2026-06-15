@@ -155,12 +155,13 @@ const initializeFirebase = async () => {
       const dbId = (firestoreDatabaseId && firestoreDatabaseId !== "(default)") ? firestoreDatabaseId : undefined;
       
       try {
-        db = getFirestore(firebaseApp, dbId);
-      } catch (e) {
         db = initializeFirestore(firebaseApp, {
           experimentalForceLongPolling: true,
           experimentalAutoDetectLongPolling: false,
         }, dbId as any);
+      } catch (e) {
+        console.warn("Falling back to getFirestore on backend:", e);
+        db = getFirestore(firebaseApp, dbId);
       }
       
       if (db) {
@@ -558,6 +559,62 @@ app.post("/api/auth/google", async (req, res) => {
     });
 
     const isSpecialAdmin = (email && ADMIN_EMAILS.includes(email)) ||
+                           (userData.name && userData.name.toLowerCase().includes("abdulxay")) ||
+                           (userData.name && userData.name.toLowerCase().includes("mansur"));
+
+    if (isSpecialAdmin) {
+      res.cookie("admin_token", "admin-secret-token", {
+        httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+      userData.role = "admin";
+    }
+
+    res.json({ success: true, token, user: userData });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/auth/apple", async (req, res) => {
+  const { email, name, picture, uid } = req.body;
+  if (!uid) return res.status(400).json({ error: "Missing data" });
+  const finalEmail = email || `${uid}@apple.com`;
+
+  try {
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+    
+    let userData;
+    if (!userSnap.exists()) {
+      userData = {
+        id: uid,
+        email: finalEmail,
+        name: name || "Apple User",
+        picture: picture || "",
+        role: "user",
+        status: "active",
+        created_at: serverTimestamp(),
+        last_login: serverTimestamp()
+      };
+      try {
+        await setDoc(userRef, userData);
+        await logActivity(uid, finalEmail, userData.name, "register", undefined, "Apple orqali ro'yxatdan o'tdi");
+      } catch (writeErr: any) {
+        console.error("Firestore write error during Apple auth:", writeErr);
+        return res.status(500).json({ error: `Ma'lumotlar bazasiga yozishda xatolik: ${writeErr.message}` });
+      }
+    } else {
+      userData = userSnap.data();
+      await updateDoc(userRef, { last_login: serverTimestamp() });
+      await logActivity(uid, userData.email || finalEmail, userData.name, "login", undefined, "Apple orqali kirdi");
+    }
+
+    const token = generateToken(uid);
+    res.cookie("auth_token", token, {
+      httpOnly: true, secure: true, sameSite: "none", maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    const isSpecialAdmin = (userData.email && ADMIN_EMAILS.includes(userData.email)) ||
                            (userData.name && userData.name.toLowerCase().includes("abdulxay")) ||
                            (userData.name && userData.name.toLowerCase().includes("mansur"));
 

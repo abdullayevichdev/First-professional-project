@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, signInAnonymously } from 'firebase/auth';
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, updateDoc, getDoc, getDocs, where, Timestamp } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, updateDoc, getDoc, getDocs, where, Timestamp } from 'firebase/firestore';
 
 // Note: firebase-applet-config.json is managed by AI Studio. 
 // For external deployments (Vercel), use Environment Variables instead.
@@ -34,7 +34,18 @@ if (!isConfigured && import.meta.env.DEV) {
 export const app = isConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
 export const db = app 
-  ? getFirestore(app, firestoreDatabaseId && firestoreDatabaseId !== "(default)" ? firestoreDatabaseId : undefined)
+  ? (() => {
+      const dbId = firestoreDatabaseId && firestoreDatabaseId !== "(default)" ? firestoreDatabaseId : undefined;
+      try {
+        return initializeFirestore(app, {
+          experimentalForceLongPolling: true,
+          experimentalAutoDetectLongPolling: false,
+        }, dbId);
+      } catch (e) {
+        console.warn("Falling back to getFirestore:", e);
+        return getFirestore(app, dbId);
+      }
+    })()
   : null;
 
 // Connection health check
